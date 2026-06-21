@@ -2,7 +2,7 @@
 // CONFIG CONFIGURATION SUPABASE
 // ==========================================
 const SUPABASE_URL = 'https://osrlijqkewwmrxzvxpqt.supabase.co'; 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zcmxpanFrZXd3bXJ4enZ4cHF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMTk2ODMsImV4cCI6MjA5NzU5NTY4M30.NXDoD7-iW5Saoo-xIQD_4-kUIQhhLH2DOK5T8ExRNmc'; // Tempel Publishable Key lengkap Anda di sini
+const SUPABASE_ANON_KEY = 'sb_publishable_3Gy9v5yQa69iQFwoAJwHuQ_JruTyt_k'; // Tempel Publishable Key lengkap Anda di sini
 
 // Inisialisasi aman tanpa memicu error "already been declared"
 let db;
