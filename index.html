@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PUSA COFFEE APP</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
@@ -41,9 +38,6 @@
 </head>
 <body class="bg-pbg text-gray-800 font-sans antialiased overflow-hidden">
 
-    <!-- ============================================== -->
-    <!-- HALAMAN LOGIN -->
-    <!-- ============================================== -->
     <div id="view-login" class="min-h-screen w-full flex items-center justify-center relative px-4">
         <div class="absolute top-6 left-6 md:top-10 md:left-10">
             <img src="https://drive.google.com/uc?export=view&id=1sV2-TcbV6C4EsgYL5nc8mdFJTqe4Msf1" alt="PUSA COFFEE" class="h-10 md:h-14 object-contain">
@@ -78,11 +72,7 @@
         </div>
     </div>
 
-    <!-- ============================================== -->
-    <!-- MAIN APLIKASI (DASHBOARD & MODUL) -->
-    <!-- ============================================== -->
     <div id="view-app" class="hidden h-screen w-full flex bg-gray-50">
-        <!-- SIDEBAR -->
         <div class="w-64 bg-pdark text-white flex flex-col transition-all duration-300 shrink-0">
             <div class="h-20 flex items-center justify-center border-b border-white/10 px-4">
                 <img src="https://drive.google.com/uc?export=view&id=1sV2-TcbV6C4EsgYL5nc8mdFJTqe4Msf1" alt="PUSA COFFEE" class="h-8 object-contain filter brightness-0 invert">
@@ -107,9 +97,7 @@
             </div>
         </div>
 
-        <!-- MAIN CONTENT AREA -->
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative">
-            <!-- HEADER ATAS -->
             <div class="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10 shadow-sm shrink-0">
                 <h1 id="page-title" class="text-2xl font-bold text-pdark">Dashboard</h1>
                 <div class="flex items-center gap-4">
@@ -117,23 +105,20 @@
                         <i class="ph ph-bell text-xl"></i>
                         <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
                     </button>
-                    <button onclick="logout()" class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 hover:bg-red-100 transition-colors" title="Keluar">
+                    <button onclick="logout()" class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 hover:bg-red-100 transition-colors hidden md:flex" title="Keluar">
                         <i class="ph ph-sign-out text-xl"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- KONTEN UTAMA DINAMIS -->
             <div class="flex-1 overflow-y-auto p-8 bg-gray-50 fade-in" id="main-content"></div>
             <div class="absolute bottom-0 right-0 w-96 h-96 bg-pbg opacity-20 rounded-tl-full pointer-events-none -z-0"></div>
         </div>
     </div>
 
-    <!-- MODAL POPUP UNTUK TAMBAH/EDIT PRODUK -->
     <div id="modal-produk" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl fade-in">
             <div class="flex justify-between items-center mb-6">
-                <!-- Judul Modal akan berubah secara dinamis -->
                 <h3 id="modal-title-produk" class="text-lg font-black text-pdark uppercase flex items-center gap-2">
                     <i class="ph ph-coffee"></i> Tambah Menu Baru
                 </h3>
@@ -172,9 +157,6 @@
         </div>
     </div>
 
-    <!-- ============================================== -->
-    <!-- LOGIKA DATABASE & OPERASIONAL INTERAKSI -->
-    <!-- ============================================== -->
     <script>
         const SUPABASE_URL = 'https://osrlijqkewwmrxzvxpqt.supabase.co'; 
         const SUPABASE_ANON_KEY = 'sb_publishable_3Gy9v5yQa69iQFwoAJwHuQ_JruTyt_k';
@@ -185,8 +167,8 @@
         }
 
         let currentUser = null;
-        let produkListLocal = []; // Menyimpan data produk sementara untuk fitur Edit
-        let editProductId = null; // Menandakan apakah kita sedang mengedit produk (jika tidak null)
+        let produkListLocal = []; 
+        let editProductId = null; 
 
         const MENUS = {
             OWNER: [
@@ -320,8 +302,34 @@
         // ==============================================
         // ENGINES: VIEW RENDERERS & DATA MANIPULATION
         // ==============================================
-        function renderDashboardView() {
+        async function renderDashboardView() {
             const content = document.getElementById('main-content');
+            
+            // Coba tarik data dari database jika tabel stocks sudah dibuat nanti
+            let htmlStok = '';
+            try {
+                const { data: dbStocks, error } = await db.from('stocks').select('nama_bahan, qty, satuan').lt('qty', 50).limit(4);
+                let lowStockData = [];
+                
+                if (!error && dbStocks && dbStocks.length > 0) {
+                    lowStockData = dbStocks.map(s => ({ item: s.nama_bahan, sisa: s.qty + " " + s.satuan }));
+                } else {
+                    // Data contoh sementara sebelum modul Master Stock dibuat
+                    lowStockData = [
+                        { item: "Bubuk Kopi Pusa", sisa: "120 gr" },
+                        { item: "Susu UHT", sisa: "2 pcs" },
+                        { item: "Gula Aren", sisa: "450 ml" }
+                    ];
+                }
+
+                htmlStok = lowStockData.map(item => `
+                    <div class="flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100">
+                        <span class="font-semibold text-gray-800 text-sm">${item.item}</span>
+                        <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-lg">${item.sisa}</span>
+                    </div>
+                `).join('');
+            } catch(err) { console.log(err); }
+
             content.innerHTML = `
                 <div class="bg-white p-4 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end fade-in border border-gray-50">
                     <div><label class="block text-xs font-bold text-gray-500 mb-1">DARI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
@@ -349,6 +357,14 @@
                                 <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">2. Americano</span><span class="text-pdark text-xs font-bold">85 Cup</span></div>
                             </div>
                         </div>
+                        
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
+                            <h3 class="font-bold text-red-600 mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-warning-circle"></i> Stok Menipis</h3>
+                            <div class="space-y-3">
+                                ${htmlStok}
+                            </div>
+                        </div>
+
                     </div>
                 </div>`;
         }
@@ -396,7 +412,7 @@
                 return;
             }
 
-            produkListLocal = menuList || []; // Simpan ke variabel global untuk diakses tombol Edit
+            produkListLocal = menuList || []; 
 
             if (produkListLocal.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400">Belum ada menu produk terdaftar. Klik "+ Tambah Menu Baru" di atas.</td></tr>`;
@@ -411,11 +427,9 @@
                     <td class="p-4 text-right font-black text-pdark">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</td>
                     <td class="p-4 text-center"><span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">${item.status}</span></td>
                     <td class="p-4 pr-6 text-center flex justify-center gap-2">
-                        <!-- TOMBOL EDIT -->
                         <button onclick="siapkanEditProduk(${item.id})" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center" title="Edit Data">
                             <i class="ph ph-pencil-simple text-lg"></i>
                         </button>
-                        <!-- TOMBOL HAPUS -->
                         <button onclick="hapusProduk(${item.id})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center" title="Hapus Data">
                             <i class="ph ph-trash text-lg"></i>
                         </button>
@@ -424,21 +438,17 @@
             `).join('');
         }
 
-        // FUNGSI MEMBUKA MODAL DALAM MODE EDIT
         function siapkanEditProduk(id) {
-            // Cari data produk yang diklik dari array lokal
             const produk = produkListLocal.find(p => p.id === id);
             if (!produk) return;
 
-            editProductId = id; // Tandai bahwa ini mode Edit
+            editProductId = id; 
             
-            // Isi form dengan data yang sudah ada
             document.getElementById('p-nama').value = produk.nama_produk;
             document.getElementById('p-kategori').value = produk.kategori;
             document.getElementById('p-modal').value = produk.harga_modal;
             document.getElementById('p-jual').value = produk.harga_jual;
 
-            // Ubah tampilan Modal
             document.getElementById('modal-title-produk').innerHTML = '<i class="ph ph-pencil-simple text-blue-600"></i> Edit Menu';
             const btnSimpan = document.getElementById('btn-simpan-produk');
             btnSimpan.innerHTML = '<i class="ph ph-floppy-disk"></i> SIMPAN PERUBAHAN';
@@ -447,12 +457,10 @@
             document.getElementById('modal-produk').classList.remove('hidden');
         }
 
-        // FUNGSI MEMBUKA MODAL DALAM MODE TAMBAH BARU
         function bukaModalProduk() {
-            editProductId = null; // Tandai bahwa ini mode Tambah Baru
+            editProductId = null; 
             document.getElementById('form-produk').reset();
             
-            // Kembalikan tampilan Modal ke default
             document.getElementById('modal-title-produk').innerHTML = '<i class="ph ph-coffee"></i> Tambah Menu Baru';
             const btnSimpan = document.getElementById('btn-simpan-produk');
             btnSimpan.innerHTML = '<i class="ph ph-floppy-disk"></i> SIMPAN KE POSTGRESQL';
@@ -467,7 +475,6 @@
             document.getElementById('form-produk').reset();
         }
 
-        // FUNGSI SIMPAN (MENANGANI INSERT DAN UPDATE)
         async function simpanProdukBaru(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-simpan-produk');
@@ -483,17 +490,15 @@
             };
 
             if (editProductId) {
-                // Proses UPDATE data yang sudah ada
                 const { error } = await db.from('products').update(payload).eq('id', editProductId);
                 if (error) alert("Gagal mengupdate: " + error.message);
             } else {
-                // Proses INSERT data baru
                 const { error } = await db.from('products').insert([payload]);
                 if (error) alert("Gagal menyimpan: " + error.message);
             }
 
             tutupModalProduk();
-            renderMasterProdukView(); // Refresh tabel setelah selesai
+            renderMasterProdukView(); 
         }
 
         async function hapusProduk(id) {
