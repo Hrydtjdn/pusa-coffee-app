@@ -73,7 +73,7 @@
     </div>
 
     <div id="view-app" class="hidden h-screen w-full flex bg-gray-50">
-        <div class="w-64 bg-pdark text-white flex flex-col transition-all duration-300">
+        <div class="w-64 bg-pdark text-white flex flex-col transition-all duration-300 shrink-0">
             <div class="h-20 flex items-center justify-center border-b border-white/10 px-4">
                 <img src="https://drive.google.com/uc?export=view&id=1sV2-TcbV6C4EsgYL5nc8mdFJTqe4Msf1" alt="PUSA COFFEE" class="h-8 object-contain filter brightness-0 invert">
             </div>
@@ -98,15 +98,14 @@
         </div>
 
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative">
-            
             <div class="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10 shadow-sm shrink-0">
                 <h1 id="page-title" class="text-2xl font-bold text-pdark">Dashboard</h1>
                 <div class="flex items-center gap-4">
-                    <button onclick="alert('Belum ada notifikasi baru untuk Anda hari ini.')" class="w-10 h-10 bg-plight rounded-xl flex items-center justify-center text-pdark relative hover:bg-pbg transition-colors">
+                    <button onclick="alert('Belum ada notifikasi baru hari ini.')" class="w-10 h-10 bg-plight rounded-xl flex items-center justify-center text-pdark relative hover:bg-pbg transition-colors">
                         <i class="ph ph-bell text-xl"></i>
                         <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
                     </button>
-                    <button onclick="logout()" class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 hover:bg-red-100 transition-colors hidden md:flex" title="Keluar">
+                    <button onclick="logout()" class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 hover:bg-red-100 transition-colors" title="Keluar">
                         <i class="ph ph-sign-out text-xl"></i>
                     </button>
                 </div>
@@ -117,16 +116,52 @@
         </div>
     </div>
 
+    <div id="modal-produk" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-black text-pdark uppercase flex items-center gap-2"><i class="ph ph-coffee"></i> Tambah Menu Baru</h3>
+                <button onclick="tutupModalProduk()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200"><i class="ph ph-x"></i></button>
+            </div>
+            <form id="form-produk" onsubmit="simpanProdukBaru(event)">
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Nama Menu Minuman / Makanan</label>
+                        <input type="text" id="p-nama" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark" placeholder="Contoh: Kopi Susu Gula Aren" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Kategori</label>
+                        <select id="p-kategori" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark">
+                            <option value="Coffee">Coffee</option>
+                            <option value="Non-Coffee">Non-Coffee</option>
+                            <option value="Makanan">Makanan</option>
+                            <option value="Cemilan">Cemilan</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Harga Modal (Rp)</label>
+                            <input type="number" id="p-modal" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark" placeholder="5000" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Harga Jual (Rp)</label>
+                            <input type="number" id="p-jual" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark" placeholder="15000" required>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" id="btn-simpan-produk" class="w-full bg-pdark text-white font-bold p-4 rounded-xl shadow-md hover:bg-opacity-95 flex items-center justify-center gap-2">
+                    <i class="ph ph-floppy-disk"></i> SIMPAN KE POSTGRESQL
+                </button>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // PASTIKAN KUNCI API DI BAWAH INI SUDAH BENAR LENGKAP
         const SUPABASE_URL = 'https://osrlijqkewwmrxzvxpqt.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'sb_publishable_3Gy9v5yQa69iQFwoAJwHuQ_JruTyt_k'; // Masukkan seluruh sisa string di belakang Q... jika ini terpotong
+        const SUPABASE_ANON_KEY = 'sb_publishable_3Gy9v5yQa69iQFwoAJwHuQ_JruTyt_k';
 
         let db;
         if (typeof supabase !== 'undefined' && supabase.createClient) {
             db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        } else {
-            console.error("SDK Supabase gagal dimuat.");
         }
 
         let currentUser = null;
@@ -160,7 +195,7 @@
 
         async function handleLogin(e) {
             e.preventDefault();
-            if (!db) return alert("Database gagal dimuat.");
+            if (!db) return alert("Koneksi Supabase error.");
             
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -190,17 +225,12 @@
                 .single();
 
             if (error || !profile || profile.status !== 'Aktif') {
-                alert("Akun tidak aktif atau belum disetel di tabel profil.");
+                alert("Profil tidak ditemukan atau dinonaktifkan.");
                 logout();
                 return;
             }
 
-            currentUser = {
-                id: authUser.id,
-                nama: profile.nama,
-                role: profile.role,
-                outlet: profile.outlet
-            };
+            currentUser = { id: authUser.id, nama: profile.nama, role: profile.role, outlet: profile.outlet };
             initApp();
         }
 
@@ -258,80 +288,168 @@
 
         function loadPage(pageId, title = "Dashboard") {
             document.getElementById('page-title').textContent = title;
+            
+            // JALUR ROUTING BARU UNTUK MASTER PRODUK
+            if (pageId === 'master' && title === 'Master Produk') {
+                renderMasterProdukView();
+                return;
+            }
+
             const content = document.getElementById('main-content');
             content.innerHTML = '<div class="flex justify-center mt-20"><i class="ph ph-spinner animate-spin text-4xl text-pdark"></i></div>';
 
             setTimeout(async () => {
                 if(pageId === 'dashboard') {
-                    if(currentUser.role === 'OWNER') {
-                        // Tarik data stok menipis dari tabel postgres asli
-                        const { data: dbStocks } = await db.from('stocks').select('nama_bahan, qty, satuan').lt('qty', 50);
-                        
-                        renderDashboard({
-                            omzet: "Rp 4.500.000",
-                            laba: "Rp 1.250.000",
-                            cup: 245,
-                            lowStock: dbStocks && dbStocks.length ? dbStocks.map(s => ({ item: s.nama_bahan, sisa: s.qty + " " + s.satuan })) : [
-                                { item: "Bubuk Kopi", sisa: "120 gr" },
-                                { item: "UHT Susu", sisa: "3 pcs" }
-                            ]
-                        });
-                    } else {
-                        renderDashboard({ shiftStatus: "OPEN", kasAwal: "Rp 500.000", cupHariIni: 45 });
-                    }
+                    renderDashboardView();
                 } else {
                     renderDefaultView(title);
                 }
-            }, 300);
+            }, 350);
         }
 
-        function renderDashboard(data) {
+        // ==============================================
+        // ENGINES: VIEW RENDERERS & DATA MANIPULATION
+        // ==============================================
+        function renderDashboardView() {
             const content = document.getElementById('main-content');
-            if(currentUser.role === 'OWNER') {
-                content.innerHTML = `
-                    <div class="bg-white p-4 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end fade-in z-10 relative border border-gray-50">
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1">DARI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1">SAMPAI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
-                        <button onclick="alert('Filter akan berfungsi setelah semua data penjualan dihubungkan ke PostgreSQL.')" class="bg-pdark text-white px-6 py-2 rounded-xl text-sm font-bold shadow hover:bg-opacity-90 flex items-center gap-2"><i class="ph ph-funnel"></i> TERAPKAN</button>
+            content.innerHTML = `
+                <div class="bg-white p-4 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end fade-in border border-gray-50">
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">DARI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">SAMPAI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
+                    <button onclick="alert('Filter siap dikoneksikan ke data POS')" class="bg-pdark text-white px-6 py-2 rounded-xl text-sm font-bold shadow hover:bg-opacity-90 flex items-center gap-2"><i class="ph ph-funnel"></i> TERAPKAN</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 fade-in">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-up text-2xl text-green-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Total Omzet</div><div class="text-xl font-black text-gray-800 mt-1">Rp 4.500.000</div></div></div>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-pbg rounded-2xl flex items-center justify-center"><i class="ph ph-money text-2xl text-pdark"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Laba Bersih</div><div class="text-xl font-black text-gray-800 mt-1">Rp 1.250.000</div></div></div>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center"><i class="ph ph-coffee text-2xl text-orange-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Cup Terjual</div><div class="text-xl font-black text-gray-800 mt-1">245 Cup</div></div></div>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-down text-2xl text-red-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Pengeluaran</div><div class="text-xl font-black text-gray-800 mt-1">Rp 800.000</div></div></div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm col-span-2 border border-gray-50 flex flex-col">
+                        <h3 class="font-bold text-pdark mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-chart-line-up"></i> Tren Penjualan</h3>
+                        <div class="flex-1 bg-plight rounded-2xl flex items-center justify-center border border-dashed border-pdark/30 min-h-[250px]"><div class="text-center"><i class="ph ph-chart-bar text-4xl text-gray-400 mb-2"></i><p class="text-gray-500 font-medium text-sm">Kanvas Grafik Siap (Chart.js)</p></div></div>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 fade-in">
-                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-up text-2xl text-green-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Total Omzet</div><div class="text-xl font-black text-gray-800 mt-1">${data.omzet}</div></div></div>
-                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-pbg rounded-2xl flex items-center justify-center"><i class="ph ph-money text-2xl text-pdark"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Laba Bersih</div><div class="text-xl font-black text-gray-800 mt-1">${data.laba}</div></div></div>
-                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center"><i class="ph ph-coffee text-2xl text-orange-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Cup Terjual</div><div class="text-xl font-black text-gray-800 mt-1">${data.cup}</div></div></div>
-                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-down text-2xl text-red-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Pengeluaran</div><div class="text-xl font-black text-gray-800 mt-1">Rp 800.000</div></div></div>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
-                        <div class="bg-white p-6 rounded-3xl shadow-sm col-span-2 border border-gray-50 flex flex-col">
-                            <h3 class="font-bold text-pdark mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-chart-line-up"></i> Tren Penjualan</h3>
-                            <div class="flex-1 bg-plight rounded-2xl flex items-center justify-center border border-dashed border-pdark/30 min-h-[250px]"><div class="text-center"><i class="ph ph-chart-bar text-4xl text-gray-400 mb-2"></i><p class="text-gray-500 font-medium text-sm">Kanvas Grafik Siap</p></div></div>
-                        </div>
-
-                        <div class="flex flex-col gap-6">
-                            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
-                                <h3 class="font-bold text-pdark mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-medal"></i> Top 5 Terlaris</h3>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">1. Kopi Susu Pusa</span><span class="text-pdark text-xs font-bold">120 Cup</span></div>
-                                    <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">2. Americano</span><span class="text-pdark text-xs font-bold">85 Cup</span></div>
-                                    <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">3. Matcha Latte</span><span class="text-pdark text-xs font-bold">50 Cup</span></div>
-                                </div>
-                            </div>
-                            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
-                                <h3 class="font-bold text-red-600 mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-warning-circle"></i> Stok Menipis</h3>
-                                <div class="space-y-3">
-                                    ${data.lowStock.map(item => `<div class="flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100"><span class="font-semibold text-gray-800 text-sm">${item.item}</span><span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-lg">${item.sisa}</span></div>`).join('')}
-                                </div>
+                    <div class="flex flex-col gap-6">
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
+                            <h3 class="font-bold text-pdark mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-medal"></i> Top 5 Terlaris</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">1. Kopi Susu Pusa</span><span class="text-pdark text-xs font-bold">120 Cup</span></div>
+                                <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">2. Americano</span><span class="text-pdark text-xs font-bold">85 Cup</span></div>
+                                <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">3. Matcha Latte</span><span class="text-pdark text-xs font-bold">50 Cup</span></div>
                             </div>
                         </div>
-                    </div>`;
+                    </div>
+                </div>`;
+        }
+
+        // KONTEN HALAMAN MASTER PRODUK
+        function renderMasterProdukView() {
+            const content = document.getElementById('main-content');
+            content.innerHTML = `
+                <div class="flex justify-between items-center mb-6 fade-in">
+                    <p class="text-sm text-gray-500 font-semibold">Kelola menu makanan & minuman kedai secara realtime.</p>
+                    <button onclick="bukaModalProduk()" class="bg-pdark text-white font-bold px-5 py-3 rounded-xl shadow hover:bg-opacity-90 flex items-center gap-2 text-sm">
+                        <i class="ph ph-plus-circle text-lg"></i> TAMBAH MENU BARU
+                    </button>
+                </div>
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden fade-in">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-plight text-pdark font-black text-xs uppercase tracking-wider border-b border-gray-100">
+                                <th class="p-4 pl-6">Nama Menu</th>
+                                <th class="p-4">Kategori</th>
+                                <th class="p-4 text-right">Harga Modal</th>
+                                <th class="p-4 text-right">Harga Jual</th>
+                                <th class="p-4 text-center">Status</th>
+                                <th class="p-4 pr-6 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body-produk" class="text-sm divide-y divide-gray-50">
+                            <tr><td colspan="6" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data dari PostgreSQL...</td></tr>
+                        </tbody>
+                    </table>
+                </div>`;
+            ambilDataProduk();
+        }
+
+        // AMBIL DATA PRODUK DARI SUPABASE
+        async function ambilDataProduk() {
+            const tbody = document.getElementById('table-body-produk');
+            if(!tbody || !db) return;
+
+            const { data: menuList, error } = await db.from('products').select('*').order('id', { ascending: false });
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 font-bold">Gagal memuat: ${error.message}</td></tr>`;
+                return;
+            }
+
+            if (menuList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400">Belum ada menu produk terdaftar. Klik "+ Tambah Menu Baru" di atas.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = menuList.map(item => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="p-4 pl-6 font-bold text-gray-800">${item.nama_produk}</td>
+                    <td class="p-4"><span class="bg-plight text-pdark font-bold text-xs px-2.5 py-1 rounded-md border border-pbg/20">${item.kategori}</span></td>
+                    <td class="p-4 text-right font-semibold text-gray-500">Rp ${Number(item.harga_modal).toLocaleString('id-ID')}</td>
+                    <td class="p-4 text-right font-black text-pdark">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</td>
+                    <td class="p-4 text-center"><span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">${item.status}</span></td>
+                    <td class="p-4 text-center">
+                        <button onclick="hapusProduk(${item.id})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" title="Hapus"><i class="ph ph-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // SIMPAN PRODUK BARU KE DATABASE
+        async function simpanProdukBaru(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-simpan-produk');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Menyimpan...';
+
+            const payload = {
+                nama_produk: document.getElementById('p-nama').value,
+                kategori: document.getElementById('p-kategori').value,
+                harga_modal: parseFloat(document.getElementById('p-modal').value) || 0,
+                harga_jual: parseFloat(document.getElementById('p-jual').value) || 0,
+                status: 'Tersedia'
+            };
+
+            const { error } = await db.from('products').insert([payload]);
+
+            if (error) {
+                alert("Gagal menyimpan: " + error.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-floppy-disk"></i> SIMPAN KE POSTGRESQL';
             } else {
-                content.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 fade-in"><div class="bg-pdark text-white p-6 rounded-3xl shadow-lg relative overflow-hidden"><h3 class="text-pbg text-sm font-bold mb-1 uppercase">Status Shift</h3><div class="text-4xl font-black">${data.shiftStatus}</div><i class="ph ph-clock absolute -right-4 -bottom-4 text-8xl text-white opacity-10"></i></div></div>`;
+                tutupModalProduk();
+                renderMasterProdukView(); // Refresh tabel
             }
         }
 
+        // HAPUS PRODUK DARI DATABASE
+        async function hapusProduk(id) {
+            if(!confirm("Apakah Anda yakin ingin menghapus menu ini dari database?")) return;
+            const { error } = await db.from('products').delete().eq('id', id);
+            if (error) alert("Gagal menghapus: " + error.message);
+            else renderMasterProdukView();
+        }
+
+        // MODAL TOGGLES
+        function bukaModalProduk() {
+            document.getElementById('modal-produk').classList.remove('hidden');
+        }
+        function tutupModalProduk() {
+            document.getElementById('modal-produk').classList.add('hidden');
+            document.getElementById('form-produk').reset();
+        }
         function renderDefaultView(title) {
-            document.getElementById('main-content').innerHTML = `<div class="bg-white p-12 rounded-3xl text-center mt-10 fade-in border border-gray-50"><div class="w-20 h-20 bg-plight rounded-3xl flex items-center justify-center text-pdark mx-auto mb-6"><i class="ph ph-hammer text-4xl"></i></div><h3 class="text-2xl font-bold text-pdark mb-2">Modul ${title}</h3><p class="text-gray-500">Antarmuka ini siap dihubungkan ke operasi tabel PostgreSQL (Supabase).</p><button onclick="loadPage('dashboard')" class="mt-8 bg-pbg bg-opacity-30 text-pdark font-bold px-6 py-3 rounded-xl hover:bg-opacity-50 transition-colors">Kembali ke Dashboard</button></div>`;
+            document.getElementById('main-content').innerHTML = `<div class="bg-white p-12 rounded-3xl text-center mt-10 fade-in border border-gray-50"><div class="w-20 h-20 bg-plight rounded-3xl flex items-center justify-center text-pdark mx-auto mb-6"><i class="ph ph-hammer text-4xl"></i></div><h3 class="text-2xl font-bold text-pdark mb-2">Modul ${title}</h3><p class="text-gray-500">Antarmuka ini siap dihubungkan ke operasi tabel PostgreSQL.</p><button onclick="loadPage('dashboard')" class="mt-8 bg-pbg bg-opacity-30 text-pdark font-bold px-6 py-3 rounded-xl hover:bg-opacity-50">Kembali ke Dashboard</button></div>`;
         }
     </script>
 </body>
