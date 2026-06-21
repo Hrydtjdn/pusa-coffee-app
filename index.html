@@ -3,648 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSA COFFEE APP</title>
-    
+    <title>PUSA COFFEE APP - FULL VERSION</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        pbg: '#b8d1b9',      
-                        pdark: '#2a632e',    
-                        plight: '#f0f4f0',   
-                    },
-                    borderRadius: {
-                        'pcard': '2.5rem',   
-                    }
-                }
-            }
-        }
+        tailwind.config = { theme: { extend: { colors: { pbg: '#b8d1b9', pdark: '#2a632e', plight: '#f0f4f0' }, borderRadius: { 'pcard': '2.5rem' } } } }
     </script>
-    
-    <style>
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #b8d1b9; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #2a632e; }
-        
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
 </head>
-<body class="bg-pbg text-gray-800 font-sans antialiased overflow-hidden">
+<body class="bg-pbg text-gray-800 font-sans">
 
-    <div id="view-login" class="min-h-screen w-full flex items-center justify-center relative px-4">
-        <div class="absolute top-6 left-6 md:top-10 md:left-10">
-            <img src="https://drive.google.com/uc?export=view&id=1sV2-TcbV6C4EsgYL5nc8mdFJTqe4Msf1" alt="PUSA COFFEE" class="h-10 md:h-14 object-contain">
-        </div>
-
-        <div class="bg-white rounded-pcard shadow-2xl max-w-sm w-full p-8 pt-16 relative mt-12">
-            <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 w-24 h-24 bg-pdark rounded-2xl border-[6px] border-white flex items-center justify-center overflow-hidden shadow-lg">
-                <img src="https://drive.google.com/uc?export=view&id=19oqB_nWQNiYs6shWlA2PeF2r-aVXukQr" alt="Barista" class="w-full h-full object-cover">
-            </div>
-
-            <div class="text-center mb-8">
-                <h2 class="text-xl font-bold text-pdark">SELAMAT DATANG</h2>
-                <p class="text-sm text-gray-400 mt-1">Silakan masuk ke akun Anda</p>
-            </div>
-
-            <div id="login-error" class="hidden bg-red-100 text-red-600 text-sm p-3 rounded-xl mb-4 text-center font-semibold"></div>
-
+    <div id="view-login" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-pcard shadow-2xl max-w-sm w-full p-8 text-center">
+            <h2 class="text-2xl font-black text-pdark mb-6">PUSA COFFEE</h2>
             <form id="form-login" onsubmit="handleLogin(event)">
-                <div class="mb-5">
-                    <label class="block uppercase font-bold text-pdark text-xs mb-2 tracking-wide pl-2">Email Akun</label>
-                    <input type="email" id="email" class="w-full bg-plight rounded-2xl py-3 px-5 text-pdark font-semibold focus:outline-none focus:ring-2 focus:ring-pdark transition-all placeholder-gray-400" placeholder="owner@pusacoffee.com" required autocomplete="off">
-                </div>
-                <div class="mb-8">
-                    <label class="block uppercase font-bold text-pdark text-xs mb-2 tracking-wide pl-2">Password</label>
-                    <input type="password" id="password" class="w-full bg-plight rounded-2xl py-3 px-5 text-pdark font-semibold focus:outline-none focus:ring-2 focus:ring-pdark transition-all placeholder-gray-400" placeholder="••••••••" required>
-                </div>
-                <button type="submit" id="btn-login" class="w-full bg-pdark text-white font-bold rounded-2xl py-4 hover:bg-opacity-90 transition-all shadow-md flex justify-center items-center gap-2">
-                    <span>MASUK</span>
-                    <i class="ph ph-sign-in text-xl"></i>
-                </button>
+                <input type="email" id="email" class="w-full bg-plight rounded-xl p-4 mb-4" placeholder="Email" required>
+                <input type="password" id="password" class="w-full bg-plight rounded-xl p-4 mb-6" placeholder="Password" required>
+                <button type="submit" class="w-full bg-pdark text-white font-bold p-4 rounded-xl">MASUK</button>
             </form>
         </div>
     </div>
 
-    <div id="view-app" class="hidden h-screen w-full flex bg-gray-50">
-        <div class="w-64 bg-pdark text-white flex flex-col transition-all duration-300 shrink-0">
-            <div class="h-20 flex items-center justify-center border-b border-white/10 px-4">
-                <img src="https://drive.google.com/uc?export=view&id=1sV2-TcbV6C4EsgYL5nc8mdFJTqe4Msf1" alt="PUSA COFFEE" class="h-8 object-contain filter brightness-0 invert">
-            </div>
-            
-            <div class="p-4 flex items-center gap-3 border-b border-white/10">
-                <div class="w-10 h-10 rounded-xl bg-pbg flex items-center justify-center overflow-hidden border-2 border-white">
-                    <img src="https://drive.google.com/uc?export=view&id=19oqB_nWQNiYs6shWlA2PeF2r-aVXukQr" class="w-full h-full object-cover">
-                </div>
-                <div>
-                    <div id="user-name-display" class="font-bold text-sm">Nama User</div>
-                    <div id="user-role-display" class="text-xs text-pbg opacity-80 uppercase">ROLE</div>
-                </div>
-            </div>
-
-            <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1" id="sidebar-menu"></div>
-
-            <div class="p-4 border-t border-white/10">
-                <button onclick="logout()" class="w-full flex items-center gap-3 px-4 py-3 text-red-300 hover:bg-white/10 rounded-xl transition-all font-semibold">
-                    <i class="ph ph-sign-out text-xl"></i> Keluar
-                </button>
-            </div>
+    <div id="view-app" class="hidden h-screen flex">
+        <div class="w-64 bg-pdark text-white p-4">
+            <div class="text-xl font-black mb-8 px-2">PUSA COFFEE</div>
+            <div id="sidebar-menu" class="space-y-2"></div>
+            <button onclick="logout()" class="absolute bottom-4 text-red-300 font-bold px-4">KELUAR</button>
         </div>
-
-        <div class="flex-1 flex flex-col h-screen overflow-hidden relative">
-            <div class="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10 shadow-sm shrink-0">
-                <h1 id="page-title" class="text-2xl font-bold text-pdark">Dashboard</h1>
-                <div class="flex items-center gap-4">
-                    <button onclick="alert('Belum ada notifikasi baru hari ini.')" class="w-10 h-10 bg-plight rounded-xl flex items-center justify-center text-pdark relative hover:bg-pbg transition-colors">
-                        <i class="ph ph-bell text-xl"></i>
-                        <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-                    </button>
-                    <button onclick="logout()" class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 hover:bg-red-100 transition-colors hidden md:flex" title="Keluar">
-                        <i class="ph ph-sign-out text-xl"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="flex-1 overflow-y-auto p-8 bg-gray-50 fade-in" id="main-content"></div>
-            <div class="absolute bottom-0 right-0 w-96 h-96 bg-pbg opacity-20 rounded-tl-full pointer-events-none -z-0"></div>
-        </div>
-    </div>
-
-    <div id="modal-produk" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl fade-in">
-            <div class="flex justify-between items-center mb-6">
-                <h3 id="modal-title-produk" class="text-lg font-black text-pdark uppercase flex items-center gap-2">
-                    <i class="ph ph-coffee"></i> Tambah Menu Baru
-                </h3>
-                <button onclick="tutupModalProduk()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200"><i class="ph ph-x"></i></button>
-            </div>
-            <form id="form-produk" onsubmit="simpanProdukBaru(event)">
-                <div class="space-y-4 mb-6">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Nama Menu Minuman / Makanan</label>
-                        <input type="text" id="p-nama" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Kategori</label>
-                        <select id="p-kategori" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark">
-                            <option value="Coffee">Coffee</option>
-                            <option value="Non-Coffee">Non-Coffee</option>
-                            <option value="Makanan">Makanan</option>
-                            <option value="Cemilan">Cemilan</option>
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Harga Modal (Rp)</label>
-                            <input type="number" id="p-modal" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Harga Jual (Rp)</label>
-                            <input type="number" id="p-jual" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark" required>
-                        </div>
-                    </div>
-                </div>
-                <button type="submit" id="btn-simpan-produk" class="w-full bg-pdark text-white font-bold p-4 rounded-xl shadow-md hover:bg-opacity-95 flex items-center justify-center gap-2">
-                    <i class="ph ph-floppy-disk"></i> SIMPAN KE POSTGRESQL
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <div id="modal-stock" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl fade-in">
-            <div class="flex justify-between items-center mb-6">
-                <h3 id="modal-title-stock" class="text-lg font-black text-pdark uppercase flex items-center gap-2">
-                    <i class="ph ph-package"></i> Input Stok Baru
-                </h3>
-                <button onclick="tutupModalStock()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200"><i class="ph ph-x"></i></button>
-            </div>
-            <form id="form-stock" onsubmit="simpanStockBaru(event)">
-                <div class="space-y-4 mb-6">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Nama Bahan Baku</label>
-                        <input type="text" id="s-nama" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark" placeholder="Contoh: Bubuk Kopi Pusa" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Kategori Bahan</label>
-                        <select id="s-kategori" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark">
-                            <option value="Bahan Utama">Bahan Utama</option>
-                            <option value="Susu & Sirup">Susu & Sirup</option>
-                            <option value="Packaging">Packaging (Cup, Sedotan)</option>
-                            <option value="Lainnya">Lainnya</option>
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Jumlah (Qty)</label>
-                            <input type="number" step="0.01" id="s-qty" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark" placeholder="1000" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2 pl-1">Satuan</label>
-                            <select id="s-satuan" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark focus:outline-none focus:ring-2 focus:ring-pdark">
-                                <option value="Gram">Gram</option>
-                                <option value="Ml">Mililiter (Ml)</option>
-                                <option value="Pcs">Pcs</option>
-                                <option value="Pack">Pack</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <button type="submit" id="btn-simpan-stock" class="w-full bg-pdark text-white font-bold p-4 rounded-xl shadow-md hover:bg-opacity-95 flex items-center justify-center gap-2">
-                    <i class="ph ph-floppy-disk"></i> SIMPAN STOK
-                </button>
-            </form>
+        <div class="flex-1 p-8 overflow-y-auto">
+            <h1 id="page-title" class="text-3xl font-black text-pdark mb-8">Dashboard</h1>
+            <div id="main-content"></div>
         </div>
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://osrlijqkewwmrxzvxpqt.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'sb_publishable_3Gy9v5yQa69iQFwoAJwHuQ_JruTyt_k';
-
-        let db;
-        if (typeof supabase !== 'undefined' && supabase.createClient) {
-            db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        }
-
-        let currentUser = null;
-        let produkListLocal = []; 
-        let editProductId = null; 
+        const db = supabase.createClient('https://osrlijqkewwmrxzvxpqt.supabase.co', 'sb_publishable_3Gy9v5yQa69iQFwoAJwHuQ_JruTyt_k');
         
-        let stockListLocal = [];
-        let editStockId = null;
-
-        const MENUS = {
-            OWNER: [
-                { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
-                { id: 'master', label: 'Master Data', icon: 'ph-database', sub: ['Master Akses', 'Master Akun', 'Master Produk', 'Master Harga', 'Master Resep'] },
-                { id: 'stock', label: 'Stock', icon: 'ph-package', sub: ['Stock Masuk', 'Stock Adjustment', 'Stock Opname', 'Riwayat Stock'] },
-                { id: 'shift', label: 'Shift', icon: 'ph-clock', sub: ['Monitoring Shift', 'Approval Shift', 'Riwayat Shift'] },
-                { id: 'keuangan', label: 'Keuangan', icon: 'ph-wallet', sub: ['Input Pengeluaran', 'Cash Flow', 'Approval Pengeluaran'] },
-                { id: 'laporan', label: 'Laporan', icon: 'ph-chart-line-up', sub: ['Penjualan', 'Stock', 'Laba Rugi', 'Food Cost'] },
-                { id: 'pengaturan', label: 'Pengaturan', icon: 'ph-gear' }
-            ],
-            KARYAWAN: [
-                { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
-                { id: 'shift_k', label: 'Shift Operasional', icon: 'ph-clock', sub: ['Buka Shift', 'Input Laporan', 'Tutup Shift'] },
-                { id: 'stock_keluar', label: 'Stock Keluar', icon: 'ph-box-arrow-up' },
-                { id: 'riwayat', label: 'Riwayat Laporan', icon: 'ph-clock-counter-clockwise' },
-                { id: 'profil', label: 'Profil Saya', icon: 'ph-user' }
-            ]
-        };
-
-        window.addEventListener('DOMContentLoaded', async () => {
-            if (!db) return;
-            const { data: { session } } = await db.auth.getSession();
-            if (session) fetchUserProfile(session.user);
-        });
+        // Navigation Logic
+        const MENUS = [
+            { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
+            { id: 'master', label: 'Master Produk', icon: 'ph-database' },
+            { id: 'laporan', label: 'Laporan Penjualan', icon: 'ph-chart-line-up' }
+        ];
 
         async function handleLogin(e) {
             e.preventDefault();
-            if (!db) return alert("Koneksi Supabase error.");
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const btn = document.getElementById('btn-login');
-            const err = document.getElementById('login-error');
-            
-            btn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Memproses...';
-            btn.disabled = true;
-            err.classList.add('hidden');
-
-            const { data, error } = await db.auth.signInWithPassword({ email: email, password: password });
-
-            if (error) {
-                err.textContent = "Gagal Masuk: " + error.message;
-                err.classList.remove('hidden');
-                resetLoginBtn(btn);
-            } else {
-                fetchUserProfile(data.user);
-            }
-        }
-
-        async function fetchUserProfile(authUser) {
-            const { data: profile, error } = await db.from('profiles').select('nama, role, outlet, status').eq('id', authUser.id).single();
-            if (error || !profile || profile.status !== 'Aktif') {
-                alert("Profil tidak ditemukan atau dinonaktifkan.");
-                logout();
-                return;
-            }
-            currentUser = { id: authUser.id, nama: profile.nama, role: profile.role, outlet: profile.outlet };
-            initApp();
-        }
-
-        function resetLoginBtn(btn) {
-            btn.innerHTML = '<span>MASUK</span><i class="ph ph-sign-in text-xl"></i>';
-            btn.disabled = false;
-        }
-
-        async function logout() {
-            if (db) await db.auth.signOut();
-            currentUser = null;
-            document.getElementById('view-app').classList.add('hidden');
-            document.getElementById('view-login').classList.remove('hidden');
-            document.getElementById('form-login').reset();
-            resetLoginBtn(document.getElementById('btn-login'));
+            const { error } = await db.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
+            if(error) alert(error.message); else { document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-app').classList.remove('hidden'); initApp(); }
         }
 
         function initApp() {
-            document.getElementById('view-login').classList.add('hidden');
-            document.getElementById('view-app').classList.remove('hidden');
-            document.getElementById('user-name-display').textContent = currentUser.nama;
-            document.getElementById('user-role-display').textContent = currentUser.role;
-            generateSidebar();
-            loadPage('dashboard');
-        }
-
-        function generateSidebar() {
-            const menuContainer = document.getElementById('sidebar-menu');
-            menuContainer.innerHTML = ''; 
-            const activeMenus = MENUS[currentUser.role];
-
-            activeMenus.forEach(item => {
-                const btn = document.createElement('button');
-                btn.className = "w-full flex items-center justify-between px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition-all group";
-                btn.innerHTML = `<div class="flex items-center gap-3"><i class="ph ${item.icon} text-xl group-hover:text-pbg transition-colors"></i><span class="font-medium text-sm tracking-wide">${item.label}</span></div>` + (item.sub ? `<i class="ph ph-caret-down text-xs opacity-50"></i>` : '');
-                menuContainer.appendChild(btn);
-
-                if(item.sub) {
-                    const subDiv = document.createElement('div');
-                    subDiv.className = "pl-11 pr-4 py-2 space-y-1 hidden"; 
-                    item.sub.forEach(subItem => {
-                        const subBtn = document.createElement('div');
-                        subBtn.className = "text-xs font-medium text-white/60 hover:text-pbg cursor-pointer py-2 transition-colors flex items-center gap-2";
-                        subBtn.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-white/30"></div> ${subItem}`;
-                        subBtn.onclick = (e) => { e.stopPropagation(); loadPage(item.id, subItem); };
-                        subDiv.appendChild(subBtn);
-                    });
-                    menuContainer.appendChild(subDiv);
-                    btn.onclick = () => subDiv.classList.toggle('hidden');
-                } else {
-                    btn.onclick = () => loadPage(item.id, item.label);
-                }
+            const sb = document.getElementById('sidebar-menu');
+            MENUS.forEach(m => {
+                const b = document.createElement('button');
+                b.className = "w-full text-left p-3 hover:bg-white/10 rounded-lg flex items-center gap-3";
+                b.innerHTML = `<i class="ph ${m.icon}"></i> ${m.label}`;
+                b.onclick = () => loadPage(m.id, m.label);
+                sb.appendChild(b);
             });
+            loadPage('dashboard', 'Dashboard');
         }
 
-        // ==============================================
-        // ROUTER / NAVIGATION
-        // ==============================================
-        function loadPage(pageId, title = "Dashboard") {
-            document.getElementById('page-title').textContent = title;
-            
-            // Bypass loading screen for CRUD views
-            if (pageId === 'master' && title === 'Master Produk') {
-                renderMasterProdukView(); return;
-            }
-            if (pageId === 'stock' && title === 'Stock Masuk') {
-                renderStockView(); return;
-            }
-
+        function loadPage(id, label) {
+            document.getElementById('page-title').textContent = label;
             const content = document.getElementById('main-content');
-            content.innerHTML = '<div class="flex justify-center mt-20"><i class="ph ph-spinner animate-spin text-4xl text-pdark"></i></div>';
-
-            setTimeout(async () => {
-                if(pageId === 'dashboard') renderDashboardView();
-                else renderDefaultView(title);
-            }, 300);
+            if(id === 'dashboard') content.innerHTML = `<div class="bg-white p-8 rounded-3xl">Dashboard Utama</div>`;
+            else if(id === 'master') renderMasterProduk();
+            else if(id === 'laporan') renderLaporan();
         }
 
-        // ==============================================
-        // DASHBOARD VIEW
-        // ==============================================
-        async function renderDashboardView() {
-            const content = document.getElementById('main-content');
-            let htmlStok = '';
-            
-            try {
-                const { data: dbStocks, error } = await db.from('stocks').select('nama_bahan, qty, satuan').lt('qty', 50).limit(4);
-                let lowStockData = [];
-                
-                if (!error && dbStocks && dbStocks.length > 0) {
-                    lowStockData = dbStocks.map(s => ({ item: s.nama_bahan, sisa: s.qty + " " + s.satuan }));
-                } else if (!error && dbStocks && dbStocks.length === 0) {
-                    htmlStok = '<div class="text-sm text-gray-400 text-center py-4">Semua stok dalam kondisi aman.</div>';
-                } else {
-                    lowStockData = [{ item: "Data belum terhubung", sisa: "-" }];
-                }
-
-                if(lowStockData.length > 0) {
-                    htmlStok = lowStockData.map(item => `
-                        <div class="flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100">
-                            <span class="font-semibold text-gray-800 text-sm">${item.item}</span>
-                            <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-lg">${item.sisa}</span>
-                        </div>
-                    `).join('');
-                }
-            } catch(err) { console.log(err); }
-
-            content.innerHTML = `
-                <div class="bg-white p-4 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end fade-in border border-gray-50">
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">DARI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">SAMPAI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
-                    <button onclick="alert('Filter siap dikoneksikan ke data POS')" class="bg-pdark text-white px-6 py-2 rounded-xl text-sm font-bold shadow hover:bg-opacity-90 flex items-center gap-2"><i class="ph ph-funnel"></i> TERAPKAN</button>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 fade-in">
-                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-up text-2xl text-green-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Total Omzet</div><div class="text-xl font-black text-gray-800 mt-1">Rp 4.500.000</div></div></div>
-                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-pbg rounded-2xl flex items-center justify-center"><i class="ph ph-money text-2xl text-pdark"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Laba Bersih</div><div class="text-xl font-black text-gray-800 mt-1">Rp 1.250.000</div></div></div>
-                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center"><i class="ph ph-coffee text-2xl text-orange-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Cup Terjual</div><div class="text-xl font-black text-gray-800 mt-1">245 Cup</div></div></div>
-                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-down text-2xl text-red-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Pengeluaran</div><div class="text-xl font-black text-gray-800 mt-1">Rp 800.000</div></div></div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
-                    <div class="bg-white p-6 rounded-3xl shadow-sm col-span-2 border border-gray-50 flex flex-col">
-                        <h3 class="font-bold text-pdark mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-chart-line-up"></i> Tren Penjualan</h3>
-                        <div class="flex-1 bg-plight rounded-2xl flex items-center justify-center border border-dashed border-pdark/30 min-h-[250px]"><div class="text-center"><i class="ph ph-chart-bar text-4xl text-gray-400 mb-2"></i><p class="text-gray-500 font-medium text-sm">Kanvas Grafik Siap (Chart.js)</p></div></div>
-                    </div>
-                    <div class="flex flex-col gap-6">
-                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
-                            <h3 class="font-bold text-pdark mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-medal"></i> Top 5 Terlaris</h3>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">1. Kopi Susu Pusa</span><span class="text-pdark text-xs font-bold">120 Cup</span></div>
-                                <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">2. Americano</span><span class="text-pdark text-xs font-bold">85 Cup</span></div>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
-                            <h3 class="font-bold text-red-600 mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-warning-circle"></i> Stok Menipis</h3>
-                            <div class="space-y-3">${htmlStok}</div>
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        // ==============================================
-        // MASTER PRODUK CRUD
-        // ==============================================
-        function renderMasterProdukView() {
-            const content = document.getElementById('main-content');
-            content.innerHTML = `
-                <div class="flex justify-between items-center mb-6 fade-in">
-                    <p class="text-sm text-gray-500 font-semibold">Kelola menu makanan & minuman kedai secara realtime.</p>
-                    <button onclick="bukaModalProduk()" class="bg-pdark text-white font-bold px-5 py-3 rounded-xl shadow hover:bg-opacity-90 flex items-center gap-2 text-sm">
-                        <i class="ph ph-plus-circle text-lg"></i> TAMBAH MENU BARU
-                    </button>
-                </div>
-                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden fade-in">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-plight text-pdark font-black text-xs uppercase tracking-wider border-b border-gray-100">
-                                <th class="p-4 pl-6">Nama Menu</th>
-                                <th class="p-4">Kategori</th>
-                                <th class="p-4 text-right">Harga Modal</th>
-                                <th class="p-4 text-right">Harga Jual</th>
-                                <th class="p-4 text-center">Status</th>
-                                <th class="p-4 pr-6 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-body-produk" class="text-sm divide-y divide-gray-50">
-                            <tr><td colspan="6" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr>
-                        </tbody>
+        async function renderLaporan() {
+            const { data } = await db.from('sales').select('*');
+            document.getElementById('main-content').innerHTML = `
+                <div class="bg-white p-6 rounded-3xl shadow-sm">
+                    <table class="w-full text-left">
+                        <thead><tr class="text-gray-400"><th>Produk</th><th>Total</th></tr></thead>
+                        <tbody>${data?.map(s => `<tr><td class="p-4 border-b">${s.nama_produk}</td><td class="p-4 border-b">Rp ${s.total_harga}</td></tr>`).join('')}</tbody>
                     </table>
                 </div>`;
-            ambilDataProduk();
         }
 
-        async function ambilDataProduk() {
-            const tbody = document.getElementById('table-body-produk');
-            if(!tbody || !db) return;
-            const { data: menuList, error } = await db.from('products').select('*').order('id', { ascending: false });
-            if (error) { tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 font-bold">Gagal memuat: ${error.message}</td></tr>`; return; }
-            
-            produkListLocal = menuList || []; 
-            if (produkListLocal.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400">Belum ada menu terdaftar.</td></tr>`; return;
-            }
-
-            tbody.innerHTML = produkListLocal.map(item => `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="p-4 pl-6 font-bold text-gray-800">${item.nama_produk}</td>
-                    <td class="p-4"><span class="bg-plight text-pdark font-bold text-xs px-2.5 py-1 rounded-md border border-pbg/20">${item.kategori}</span></td>
-                    <td class="p-4 text-right font-semibold text-gray-500">Rp ${Number(item.harga_modal).toLocaleString('id-ID')}</td>
-                    <td class="p-4 text-right font-black text-pdark">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</td>
-                    <td class="p-4 text-center"><span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">${item.status}</span></td>
-                    <td class="p-4 pr-6 text-center flex justify-center gap-2">
-                        <button onclick="siapkanEditProduk(${item.id})" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center justify-center"><i class="ph ph-pencil-simple"></i></button>
-                        <button onclick="hapusProduk(${item.id})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center justify-center"><i class="ph ph-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function siapkanEditProduk(id) {
-            const produk = produkListLocal.find(p => p.id === id);
-            if (!produk) return;
-            editProductId = id; 
-            document.getElementById('p-nama').value = produk.nama_produk;
-            document.getElementById('p-kategori').value = produk.kategori;
-            document.getElementById('p-modal').value = produk.harga_modal;
-            document.getElementById('p-jual').value = produk.harga_jual;
-            document.getElementById('modal-title-produk').innerHTML = '<i class="ph ph-pencil-simple text-blue-600"></i> Edit Menu';
-            const btnSimpan = document.getElementById('btn-simpan-produk');
-            btnSimpan.innerHTML = '<i class="ph ph-floppy-disk"></i> SIMPAN PERUBAHAN';
-            btnSimpan.className = "w-full bg-blue-600 text-white font-bold p-4 rounded-xl shadow-md hover:bg-blue-700 flex items-center justify-center gap-2";
-            document.getElementById('modal-produk').classList.remove('hidden');
-        }
-
-        function bukaModalProduk() {
-            editProductId = null; 
-            document.getElementById('form-produk').reset();
-            document.getElementById('modal-title-produk').innerHTML = '<i class="ph ph-coffee"></i> Tambah Menu Baru';
-            const btnSimpan = document.getElementById('btn-simpan-produk');
-            btnSimpan.innerHTML = '<i class="ph ph-floppy-disk"></i> SIMPAN KE POSTGRESQL';
-            btnSimpan.className = "w-full bg-pdark text-white font-bold p-4 rounded-xl shadow-md hover:bg-opacity-95 flex items-center justify-center gap-2";
-            document.getElementById('modal-produk').classList.remove('hidden');
-        }
-
-        function tutupModalProduk() {
-            document.getElementById('modal-produk').classList.add('hidden');
-            editProductId = null; 
-            document.getElementById('form-produk').reset();
-        }
-
-        async function simpanProdukBaru(e) {
-            e.preventDefault();
-            const payload = {
-                nama_produk: document.getElementById('p-nama').value,
-                kategori: document.getElementById('p-kategori').value,
-                harga_modal: parseFloat(document.getElementById('p-modal').value) || 0,
-                harga_jual: parseFloat(document.getElementById('p-jual').value) || 0,
-                status: 'Tersedia'
-            };
-            if (editProductId) await db.from('products').update(payload).eq('id', editProductId);
-            else await db.from('products').insert([payload]);
-            
-            tutupModalProduk(); renderMasterProdukView(); 
-        }
-
-        async function hapusProduk(id) {
-            if(!confirm("Hapus permanen menu ini dari database?")) return;
-            await db.from('products').delete().eq('id', id);
-            renderMasterProdukView();
-        }
-
-        // ==============================================
-        // MASTER STOCK CRUD
-        // ==============================================
-        function renderStockView() {
-            const content = document.getElementById('main-content');
-            content.innerHTML = `
-                <div class="flex justify-between items-center mb-6 fade-in">
-                    <p class="text-sm text-gray-500 font-semibold">Manajemen stok bahan baku PUSA COFFEE.</p>
-                    <button onclick="bukaModalStock()" class="bg-pdark text-white font-bold px-5 py-3 rounded-xl shadow hover:bg-opacity-90 flex items-center gap-2 text-sm">
-                        <i class="ph ph-plus-circle text-lg"></i> INPUT STOK BARU
-                    </button>
-                </div>
-                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden fade-in">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-plight text-pdark font-black text-xs uppercase tracking-wider border-b border-gray-100">
-                                <th class="p-4 pl-6">Nama Bahan</th>
-                                <th class="p-4">Kategori</th>
-                                <th class="p-4 text-center">Qty</th>
-                                <th class="p-4 text-center">Satuan</th>
-                                <th class="p-4 pr-6 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-body-stock" class="text-sm divide-y divide-gray-50">
-                            <tr><td colspan="5" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr>
-                        </tbody>
+        async function renderMasterProduk() {
+            const { data } = await db.from('products').select('*');
+            document.getElementById('main-content').innerHTML = `
+                <div class="bg-white p-6 rounded-3xl">
+                    <table class="w-full">
+                        <tbody>${data?.map(p => `<tr><td class="p-4">${p.nama_produk}</td><td class="p-4">Rp ${p.harga_jual}</td></tr>`).join('')}</tbody>
                     </table>
                 </div>`;
-            ambilDataStock();
         }
 
-        async function ambilDataStock() {
-            const tbody = document.getElementById('table-body-stock');
-            if(!tbody || !db) return;
-            const { data: sList, error } = await db.from('stocks').select('*').order('nama_bahan', { ascending: true });
-            
-            if (error) { tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500 font-bold">Gagal memuat: ${error.message}</td></tr>`; return; }
-            
-            stockListLocal = sList || []; 
-            if (stockListLocal.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-400">Stok masih kosong. Silakan Input Stok Baru.</td></tr>`; return;
-            }
-
-            tbody.innerHTML = stockListLocal.map(item => {
-                const isLow = item.qty < 50;
-                const qtyColor = isLow ? 'text-red-600 bg-red-50' : 'text-gray-800 bg-gray-50';
-                
-                return `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="p-4 pl-6 font-bold text-gray-800">${item.nama_bahan}</td>
-                    <td class="p-4"><span class="bg-plight text-gray-600 font-bold text-xs px-2.5 py-1 rounded-md border border-gray-200">${item.kategori}</span></td>
-                    <td class="p-4 text-center"><span class="font-black ${qtyColor} px-3 py-1 rounded-lg">${item.qty}</span></td>
-                    <td class="p-4 text-center font-semibold text-gray-500 uppercase text-xs">${item.satuan}</td>
-                    <td class="p-4 pr-6 text-center flex justify-center gap-2">
-                        <button onclick="siapkanEditStock(${item.id})" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center justify-center"><i class="ph ph-pencil-simple"></i></button>
-                        <button onclick="hapusStock(${item.id})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center justify-center"><i class="ph ph-trash"></i></button>
-                    </td>
-                </tr>
-            `}).join('');
-        }
-
-        function siapkanEditStock(id) {
-            const stk = stockListLocal.find(s => s.id === id);
-            if (!stk) return;
-            editStockId = id; 
-            document.getElementById('s-nama').value = stk.nama_bahan;
-            document.getElementById('s-kategori').value = stk.kategori;
-            document.getElementById('s-qty').value = stk.qty;
-            document.getElementById('s-satuan').value = stk.satuan;
-            
-            document.getElementById('modal-title-stock').innerHTML = '<i class="ph ph-pencil-simple text-blue-600"></i> Edit Stok';
-            const btnSimpan = document.getElementById('btn-simpan-stock');
-            btnSimpan.innerHTML = '<i class="ph ph-floppy-disk"></i> SIMPAN PERUBAHAN';
-            btnSimpan.className = "w-full bg-blue-600 text-white font-bold p-4 rounded-xl shadow-md hover:bg-blue-700 flex items-center justify-center gap-2";
-            document.getElementById('modal-stock').classList.remove('hidden');
-        }
-
-        function bukaModalStock() {
-            editStockId = null; 
-            document.getElementById('form-stock').reset();
-            document.getElementById('modal-title-stock').innerHTML = '<i class="ph ph-package"></i> Input Stok Baru';
-            const btnSimpan = document.getElementById('btn-simpan-stock');
-            btnSimpan.innerHTML = '<i class="ph ph-floppy-disk"></i> SIMPAN STOK';
-            btnSimpan.className = "w-full bg-pdark text-white font-bold p-4 rounded-xl shadow-md hover:bg-opacity-95 flex items-center justify-center gap-2";
-            document.getElementById('modal-stock').classList.remove('hidden');
-        }
-
-        function tutupModalStock() {
-            document.getElementById('modal-stock').classList.add('hidden');
-            editStockId = null; 
-            document.getElementById('form-stock').reset();
-        }
-
-        async function simpanStockBaru(e) {
-            e.preventDefault();
-            const payload = {
-                nama_bahan: document.getElementById('s-nama').value,
-                kategori: document.getElementById('s-kategori').value,
-                qty: parseFloat(document.getElementById('s-qty').value) || 0,
-                satuan: document.getElementById('s-satuan').value,
-            };
-            if (editStockId) await db.from('stocks').update(payload).eq('id', editStockId);
-            else await db.from('stocks').insert([payload]);
-            
-            tutupModalStock(); renderStockView(); 
-        }
-
-        async function hapusStock(id) {
-            if(!confirm("Hapus data stok ini?")) return;
-            await db.from('stocks').delete().eq('id', id);
-            renderStockView();
-        }
-
-        function renderDefaultView(title) {
-            document.getElementById('main-content').innerHTML = `<div class="bg-white p-12 rounded-3xl text-center mt-10 fade-in border border-gray-50"><div class="w-20 h-20 bg-plight rounded-3xl flex items-center justify-center text-pdark mx-auto mb-6"><i class="ph ph-hammer text-4xl"></i></div><h3 class="text-2xl font-bold text-pdark mb-2">Modul ${title}</h3><p class="text-gray-500">Antarmuka ini siap dihubungkan ke operasi tabel PostgreSQL.</p><button onclick="loadPage('dashboard')" class="mt-8 bg-pbg bg-opacity-30 text-pdark font-bold px-6 py-3 rounded-xl hover:bg-opacity-50">Kembali ke Dashboard</button></div>`;
-        }
+        function logout() { location.reload(); }
     </script>
 </body>
 </html>
