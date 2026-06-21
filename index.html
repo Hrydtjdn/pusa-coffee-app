@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PUSA COFFEE APP</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
@@ -41,9 +38,6 @@
 </head>
 <body class="bg-pbg text-gray-800 font-sans antialiased overflow-hidden">
 
-    <!-- ============================================== -->
-    <!-- HALAMAN LOGIN -->
-    <!-- ============================================== -->
     <div id="view-login" class="min-h-screen w-full flex items-center justify-center relative px-4">
         <div class="absolute top-6 left-6 md:top-10 md:left-10">
             <img src="https://drive.google.com/uc?export=view&id=1sV2-TcbV6C4EsgYL5nc8mdFJTqe4Msf1" alt="PUSA COFFEE" class="h-10 md:h-14 object-contain">
@@ -78,11 +72,7 @@
         </div>
     </div>
 
-    <!-- ============================================== -->
-    <!-- MAIN APLIKASI (DASHBOARD) -->
-    <!-- ============================================== -->
     <div id="view-app" class="hidden h-screen w-full flex bg-gray-50">
-        <!-- SIDEBAR -->
         <div class="w-64 bg-pdark text-white flex flex-col transition-all duration-300">
             <div class="h-20 flex items-center justify-center border-b border-white/10 px-4">
                 <img src="https://drive.google.com/uc?export=view&id=1sV2-TcbV6C4EsgYL5nc8mdFJTqe4Msf1" alt="PUSA COFFEE" class="h-8 object-contain filter brightness-0 invert">
@@ -107,14 +97,17 @@
             </div>
         </div>
 
-        <!-- MAIN CONTENT -->
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative">
-            <div class="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10 shadow-sm">
+            
+            <div class="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10 shadow-sm shrink-0">
                 <h1 id="page-title" class="text-2xl font-bold text-pdark">Dashboard</h1>
                 <div class="flex items-center gap-4">
-                    <button class="w-10 h-10 bg-plight rounded-xl flex items-center justify-center text-pdark relative">
+                    <button onclick="alert('Belum ada notifikasi baru untuk Anda hari ini.')" class="w-10 h-10 bg-plight rounded-xl flex items-center justify-center text-pdark relative hover:bg-pbg transition-colors">
                         <i class="ph ph-bell text-xl"></i>
                         <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                    <button onclick="logout()" class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 hover:bg-red-100 transition-colors hidden md:flex" title="Keluar">
+                        <i class="ph ph-sign-out text-xl"></i>
                     </button>
                 </div>
             </div>
@@ -124,18 +117,16 @@
         </div>
     </div>
 
-    <!-- ============================================== -->
-    <!-- LOGIC INTEGRASI DATABASE & INTERAKSI -->
-    <!-- ============================================== -->
     <script>
-        // CONFIG KONEKSI SUPABASE
+        // PASTIKAN KUNCI API DI BAWAH INI SUDAH BENAR LENGKAP
         const SUPABASE_URL = 'https://osrlijqkewwmrxzvxpqt.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'sb_publishable_3Gy9v5yQa69iQFwoAJwHuQ_JruTyt_k'; // Masukkan Publishable Key Anda di sini jika terpotong
+        const SUPABASE_ANON_KEY = 'sb_publishable_3Gy9v5yQa69iQFwoAJwHuQ_JruTy5yQa69iQFwoAJwHuQ'; // Masukkan seluruh sisa string di belakang Q... jika ini terpotong
 
         let db;
-        // Inisialisasi aman tanpa risiko tabrakan variabel global
         if (typeof supabase !== 'undefined' && supabase.createClient) {
             db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+            console.error("SDK Supabase gagal dimuat.");
         }
 
         let currentUser = null;
@@ -159,7 +150,6 @@
             ]
         };
 
-        // Otomatis periksa sesi aktif saat refresh halaman
         window.addEventListener('DOMContentLoaded', async () => {
             if (!db) return;
             const { data: { session } } = await db.auth.getSession();
@@ -168,13 +158,9 @@
             }
         });
 
-        // PROSES AUTHENTICATION LOGIN
         async function handleLogin(e) {
             e.preventDefault();
-            if (!db) {
-                alert("Koneksi database Supabase gagal dimuat.");
-                return;
-            }
+            if (!db) return alert("Database gagal dimuat.");
             
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -185,10 +171,7 @@
             btn.disabled = true;
             err.classList.add('hidden');
 
-            const { data, error } = await db.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
+            const { data, error } = await db.auth.signInWithPassword({ email: email, password: password });
 
             if (error) {
                 err.textContent = "Gagal Masuk: " + error.message;
@@ -200,7 +183,6 @@
         }
 
         async function fetchUserProfile(authUser) {
-            // Mencocokkan data ID autentikasi ke tabel profil postgres
             const { data: profile, error } = await db
                 .from('profiles')
                 .select('nama, role, outlet, status')
@@ -208,7 +190,7 @@
                 .single();
 
             if (error || !profile || profile.status !== 'Aktif') {
-                alert("Profil pengguna tidak ditemukan atau akun dinonaktifkan.");
+                alert("Akun tidak aktif atau belum disetel di tabel profil.");
                 logout();
                 return;
             }
@@ -236,14 +218,11 @@
             resetLoginBtn(document.getElementById('btn-login'));
         }
 
-        // RENDER SIDEBAR & ROUTING VIEW
         function initApp() {
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('view-app').classList.remove('hidden');
-            
             document.getElementById('user-name-display').textContent = currentUser.nama;
             document.getElementById('user-role-display').textContent = currentUser.role;
-
             generateSidebar();
             loadPage('dashboard');
         }
@@ -256,10 +235,7 @@
             activeMenus.forEach(item => {
                 const btn = document.createElement('button');
                 btn.className = "w-full flex items-center justify-between px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white rounded-xl transition-all group";
-                btn.innerHTML = `<div class="flex items-center gap-3">
-                                    <i class="ph ${item.icon} text-xl group-hover:text-pbg transition-colors"></i>
-                                    <span class="font-medium text-sm tracking-wide">${item.label}</span>
-                                 </div>` + (item.sub ? `<i class="ph ph-caret-down text-xs opacity-50"></i>` : '');
+                btn.innerHTML = `<div class="flex items-center gap-3"><i class="ph ${item.icon} text-xl group-hover:text-pbg transition-colors"></i><span class="font-medium text-sm tracking-wide">${item.label}</span></div>` + (item.sub ? `<i class="ph ph-caret-down text-xs opacity-50"></i>` : '');
                 menuContainer.appendChild(btn);
 
                 if(item.sub) {
@@ -288,7 +264,7 @@
             setTimeout(async () => {
                 if(pageId === 'dashboard') {
                     if(currentUser.role === 'OWNER') {
-                        // Tarik data stok menipis dari tabel postgres asli secara realtime
+                        // Tarik data stok menipis dari tabel postgres asli
                         const { data: dbStocks } = await db.from('stocks').select('nama_bahan, qty, satuan').lt('qty', 50);
                         
                         renderDashboard({
@@ -313,44 +289,49 @@
             const content = document.getElementById('main-content');
             if(currentUser.role === 'OWNER') {
                 content.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 fade-in">
-                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4">
-                            <div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-up text-2xl text-green-600"></i></div>
-                            <div><div class="text-xs font-bold text-gray-400 uppercase">Total Omzet</div><div class="text-xl font-black text-gray-800 mt-1">${data.omzet}</div></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4">
-                            <div class="w-14 h-14 bg-pbg rounded-2xl flex items-center justify-center"><i class="ph ph-money text-2xl text-pdark"></i></div>
-                            <div><div class="text-xs font-bold text-gray-400 uppercase">Laba Bersih</div><div class="text-xl font-black text-gray-800 mt-1">${data.laba}</div></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4">
-                            <div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center"><i class="ph ph-coffee text-2xl text-orange-600"></i></div>
-                            <div><div class="text-xs font-bold text-gray-400 uppercase">Cup Terjual</div><div class="text-xl font-black text-gray-800 mt-1">${data.cup} Cup</div></div>
-                        </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end fade-in z-10 relative border border-gray-50">
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1">DARI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1">SAMPAI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
+                        <button onclick="alert('Filter akan berfungsi setelah semua data penjualan dihubungkan ke PostgreSQL.')" class="bg-pdark text-white px-6 py-2 rounded-xl text-sm font-bold shadow hover:bg-opacity-90 flex items-center gap-2"><i class="ph ph-funnel"></i> TERAPKAN</button>
                     </div>
-                    <div class="bg-white p-6 rounded-3xl shadow-sm max-w-md border border-gray-50">
-                        <h3 class="font-bold text-red-600 mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-warning-circle"></i> Stok Menipis (Realtime DB)</h3>
-                        <div class="space-y-3">
-                            ${data.lowStock.map(item => `
-                                <div class="flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100">
-                                    <span class="font-semibold text-gray-800 text-sm">${item.item}</span>
-                                    <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-lg">${item.sisa}</span>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 fade-in">
+                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-up text-2xl text-green-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Total Omzet</div><div class="text-xl font-black text-gray-800 mt-1">${data.omzet}</div></div></div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-pbg rounded-2xl flex items-center justify-center"><i class="ph ph-money text-2xl text-pdark"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Laba Bersih</div><div class="text-xl font-black text-gray-800 mt-1">${data.laba}</div></div></div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center"><i class="ph ph-coffee text-2xl text-orange-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Cup Terjual</div><div class="text-xl font-black text-gray-800 mt-1">${data.cup}</div></div></div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-down text-2xl text-red-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Pengeluaran</div><div class="text-xl font-black text-gray-800 mt-1">Rp 800.000</div></div></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+                        <div class="bg-white p-6 rounded-3xl shadow-sm col-span-2 border border-gray-50 flex flex-col">
+                            <h3 class="font-bold text-pdark mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-chart-line-up"></i> Tren Penjualan</h3>
+                            <div class="flex-1 bg-plight rounded-2xl flex items-center justify-center border border-dashed border-pdark/30 min-h-[250px]"><div class="text-center"><i class="ph ph-chart-bar text-4xl text-gray-400 mb-2"></i><p class="text-gray-500 font-medium text-sm">Kanvas Grafik Siap</p></div></div>
+                        </div>
+
+                        <div class="flex flex-col gap-6">
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
+                                <h3 class="font-bold text-pdark mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-medal"></i> Top 5 Terlaris</h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">1. Kopi Susu Pusa</span><span class="text-pdark text-xs font-bold">120 Cup</span></div>
+                                    <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">2. Americano</span><span class="text-pdark text-xs font-bold">85 Cup</span></div>
+                                    <div class="flex justify-between items-center p-3 bg-plight rounded-xl"><span class="font-bold text-gray-800 text-sm">3. Matcha Latte</span><span class="text-pdark text-xs font-bold">50 Cup</span></div>
                                 </div>
-                            `).join('')}
+                            </div>
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
+                                <h3 class="font-bold text-red-600 mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-warning-circle"></i> Stok Menipis</h3>
+                                <div class="space-y-3">
+                                    ${data.lowStock.map(item => `<div class="flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100"><span class="font-semibold text-gray-800 text-sm">${item.item}</span><span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-lg">${item.sisa}</span></div>`).join('')}
+                                </div>
+                            </div>
                         </div>
                     </div>`;
             } else {
-                content.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 fade-in">
-                        <div class="bg-pdark text-white p-6 rounded-3xl shadow-lg">
-                            <h3 class="text-pbg text-sm font-bold mb-1 uppercase">Status Shift</h3>
-                            <div class="text-3xl font-black">${data.shiftStatus}</div>
-                        </div>
-                    </div>`;
+                content.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 fade-in"><div class="bg-pdark text-white p-6 rounded-3xl shadow-lg relative overflow-hidden"><h3 class="text-pbg text-sm font-bold mb-1 uppercase">Status Shift</h3><div class="text-4xl font-black">${data.shiftStatus}</div><i class="ph ph-clock absolute -right-4 -bottom-4 text-8xl text-white opacity-10"></i></div></div>`;
             }
         }
 
         function renderDefaultView(title) {
-            document.getElementById('main-content').innerHTML = `<div class="bg-white p-12 rounded-3xl text-center mt-10 fade-in"><h3 class="text-2xl font-bold text-pdark mb-2">Modul ${title}</h3><p class="text-gray-400">Siap dihubungkan ke operasi CRUD tabel PostgreSQL.</p><button onclick="loadPage('dashboard')" class="mt-8 bg-plight text-pdark font-bold px-6 py-3 rounded-xl">Kembali ke Dashboard</button></div>`;
+            document.getElementById('main-content').innerHTML = `<div class="bg-white p-12 rounded-3xl text-center mt-10 fade-in border border-gray-50"><div class="w-20 h-20 bg-plight rounded-3xl flex items-center justify-center text-pdark mx-auto mb-6"><i class="ph ph-hammer text-4xl"></i></div><h3 class="text-2xl font-bold text-pdark mb-2">Modul ${title}</h3><p class="text-gray-500">Antarmuka ini siap dihubungkan ke operasi tabel PostgreSQL (Supabase).</p><button onclick="loadPage('dashboard')" class="mt-8 bg-pbg bg-opacity-30 text-pdark font-bold px-6 py-3 rounded-xl hover:bg-opacity-50 transition-colors">Kembali ke Dashboard</button></div>`;
         }
     </script>
 </body>
