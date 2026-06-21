@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUSA COFFEE APP</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pbg: '#b8d1b9',      
+                        pdark: '#2a632e',    
+                        plight: '#f0f4f0',   
+                    },
+                    borderRadius: {
+                        'pcard': '2.5rem',   
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #b8d1b9; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2a632e; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-pbg text-gray-800 font-sans antialiased overflow-hidden">
+
+    <div id="view-login" class="min-h-screen w-full flex items-center justify-center relative px-4">
+        <div class="absolute top-6 left-6 md:top-10 md:left-10">
+            <img src="https://drive.google.com/uc?export=view&id=1sV2-TcbV6C4EsgYL5nc8mdFJTqe4Msf1" alt="PUSA COFFEE" class="h-10 md:h-14 object-contain">
+        </div>
+
+        <div class="bg-white rounded-pcard shadow-2xl max-w-sm w-full p-8 pt-16 relative mt-12">
+            <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 w-24 h-24 bg-pdark rounded-2xl border-[6px] border-white flex items-center justify-center overflow-hidden shadow-lg">
+                <img src="https://drive.google.com/uc?export=view&id=19oqB_nWQNiYs6shWlA2PeF2r-aVXukQr" alt="Barista" class="w-full h-full object-cover">
+            </div>
+
+            <div class="text-center mb-8">
+                <h2 class="text-xl font-bold text-pdark">SELAMAT DATANG</h2>
+                <p class="text-sm text-gray-400 mt-1">Silakan masuk ke akun Anda</p>
+            </div>
+
+            <div id="login-error" class="hidden bg-red-100 text-red-600 text-sm p-3 rounded-xl mb-4 text-center font-semibold"></div>
+
+            <form id="form-login" onsubmit="handleLogin(event)">
+                <div class="mb-5">
+                    <label class="block uppercase font-bold text-pdark text-xs mb-2 tracking-wide pl-2">Email Akun</label>
+                    <input type="email" id="email" class="w-full bg-plight rounded-2xl py-3 px-5 text-pdark font-semibold focus:outline-none focus:ring-2 focus:ring-pdark transition-all placeholder-gray-400" placeholder="owner@pusacoffee.com" required autocomplete="off">
+                </div>
+                <div class="mb-8">
+                    <label class="block uppercase font-bold text-pdark text-xs mb-2 tracking-wide pl-2">Password</label>
+                    <input type="password" id="password" class="w-full bg-plight rounded-2xl py-3 px-5 text-pdark font-semibold focus:outline-none focus:ring-2 focus:ring-pdark transition-all placeholder-gray-400" placeholder="••••••••" required>
+                </div>
+                <button type="submit" id="btn-login" class="w-full bg-pdark text-white font-bold rounded-2xl py-4 hover:bg-opacity-90 transition-all shadow-md flex justify-center items-center gap-2">
+                    <span>MASUK</span>
+                    <i class="ph ph-sign-in text-xl"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="view-app" class="hidden h-screen w-full flex bg-gray-50">
+        <div class="w-64 bg-pdark text-white flex flex-col transition-all duration-300">
+            <div class="h-20 flex items-center justify-center border-b border-white/10 px-4">
+                <img src="https://drive.google.com/uc?export=view&id=1sV2-TcbV6C4EsgYL5nc8mdFJTqe4Msf1" alt="PUSA COFFEE" class="h-8 object-contain filter brightness-0 invert">
+            </div>
+            
+            <div class="p-4 flex items-center gap-3 border-b border-white/10">
+                <div class="w-10 h-10 rounded-xl bg-pbg flex items-center justify-center overflow-hidden border-2 border-white">
+                    <img src="https://drive.google.com/uc?export=view&id=19oqB_nWQNiYs6shWlA2PeF2r-aVXukQr" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <div id="user-name-display" class="font-bold text-sm">Nama User</div>
+                    <div id="user-role-display" class="text-xs text-pbg opacity-80 uppercase">ROLE</div>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1" id="sidebar-menu"></div>
+
+            <div class="p-4 border-t border-white/10">
+                <button onclick="logout()" class="w-full flex items-center gap-3 px-4 py-3 text-red-300 hover:bg-white/10 rounded-xl transition-all font-semibold">
+                    <i class="ph ph-sign-out text-xl"></i> Keluar
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col h-screen overflow-hidden relative">
+            <div class="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10 shadow-sm">
+                <h1 id="page-title" class="text-2xl font-bold text-pdark">Dashboard</h1>
+                <div class="flex items-center gap-4">
+                    <button class="w-10 h-10 bg-plight rounded-xl flex items-center justify-center text-pdark relative">
+                        <i class="ph ph-bell text-xl"></i>
+                        <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-8 bg-gray-50 fade-in" id="main-content"></div>
+            <div class="absolute bottom-0 right-0 w-96 h-96 bg-pbg opacity-20 rounded-tl-full pointer-events-none -z-0"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
