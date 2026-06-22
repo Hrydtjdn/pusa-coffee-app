@@ -18,8 +18,8 @@
                 extend: {
                     colors: {
                         pbg: '#b8d1b9',      
-                        pdark: '#2a632e',    
-                        plight: '#f0f4f0',   
+                        pdark: '#1b4324', /* Disetel lebih gelap agar sesuai desain gambar */
+                        plight: '#f4f7f4',   
                     },
                     borderRadius: {
                         'pcard': '2.5rem',   
@@ -33,15 +33,15 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #b8d1b9; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #2a632e; }
+        ::-webkit-scrollbar-thumb:hover { background: #1b4324; }
         
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         /* Wizard Stepper Styling */
-        .step-active { background-color: #2a632e; color: white; border-color: #2a632e; }
+        .step-active { background-color: #1b4324; color: white; border-color: #1b4324; }
         .step-inactive { background-color: #f3f4f6; color: #9ca3af; border-color: #e5e7eb; }
-        .step-line-active { background-color: #2a632e; }
+        .step-line-active { background-color: #1b4324; }
         .step-line-inactive { background-color: #e5e7eb; }
     </style>
 </head>
@@ -135,7 +135,6 @@
         </div>
     </div>
 
-    <!-- MODAL POPUP UNTUK TAMBAH/EDIT PRODUK & STOCK (Sama seperti sebelumnya) -->
     <!-- Modal Produk -->
     <div id="modal-produk" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl fade-in">
@@ -207,8 +206,12 @@
 
         // State Manajemen Laporan Shift (Wizard)
         let wizardStep = 1;
-        let formPenjualan = { tanggal: new Date().toISOString().split('T')[0], rincian: [], cash: 0, qris: 0, transfer: 0 };
-        let formStockKeluar = {}; // Format: { stock_id: { terpakai: 0, rusak: 0, tumpah: 0 } }
+        let formPenjualan = { 
+            tanggal: new Date().toISOString().split('T')[0], 
+            rincian: [], // Array objek: { id, nama, qty }
+            cash: '', qris: '', transfer: '' 
+        };
+        let formStockKeluar = {}; 
         let formPengeluaran = []; 
 
         const MENUS = {
@@ -329,9 +332,6 @@
             }, 250);
         }
 
-        // ==============================================
-        // 1. DASHBOARD VIEW (DENGAN KALKULASI REAL)
-        // ==============================================
         async function renderDashboardView() {
             const content = document.getElementById('main-content');
             let htmlStok = '';
@@ -390,40 +390,36 @@
                 </div>`;
         }
 
-        // ==============================================
-        // 2. MODUL LAPORAN AKHIR SHIFT (WIZARD)
-        // ==============================================
         async function renderLaporanShiftView() {
             const content = document.getElementById('main-content');
             
-            // Tarik master data yang diperlukan untuk form
+            // Tarik master data
             if(produkListLocal.length === 0) { const {data} = await db.from('products').select('*'); produkListLocal = data || []; }
             if(stockListLocal.length === 0) { const {data} = await db.from('stocks').select('*').order('nama_bahan',{ascending:true}); stockListLocal = data || []; }
 
-            // Render Kerangka Stepper
             content.innerHTML = `
                 <div class="max-w-5xl mx-auto fade-in">
-                    <h2 class="text-2xl font-black text-pdark mb-6">Laporan Akhir Shift</h2>
+                    <h2 class="text-3xl font-black text-pdark mb-8">Laporan Akhir Shift</h2>
                     
-                    <!-- Stepper Nav -->
+                    <!-- Stepper Nav (Minimalist style) -->
                     <div class="flex items-center justify-between mb-8 relative">
-                        <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 ${wizardStep > 1 ? 'step-line-active' : 'step-line-inactive'} -z-10 rounded-full"></div>
+                        <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-0.5 ${wizardStep > 1 ? 'step-line-active' : 'step-line-inactive'} -z-10"></div>
                         
-                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-2">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm ${wizardStep >= 1 ? 'step-active' : 'step-inactive'}">1</div>
-                            <span class="text-xs font-bold text-gray-500">Penjualan</span>
+                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-4">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${wizardStep >= 1 ? 'step-active' : 'step-inactive'}">1</div>
+                            <span class="text-xs font-bold text-gray-500 mt-1">Penjualan</span>
                         </div>
-                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-2">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm ${wizardStep >= 2 ? 'step-active' : 'step-inactive'}">2</div>
-                            <span class="text-xs font-bold text-gray-500">Stock Keluar</span>
+                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-4">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${wizardStep >= 2 ? 'step-active' : 'step-inactive'}">2</div>
+                            <span class="text-xs font-bold text-gray-500 mt-1">Stock Keluar</span>
                         </div>
-                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-2">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm ${wizardStep >= 3 ? 'step-active' : 'step-inactive'}">3</div>
-                            <span class="text-xs font-bold text-gray-500">Pengeluaran</span>
+                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-4">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${wizardStep >= 3 ? 'step-active' : 'step-inactive'}">3</div>
+                            <span class="text-xs font-bold text-gray-500 mt-1">Pengeluaran</span>
                         </div>
-                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-2 opacity-50">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm step-inactive">4</div>
-                            <span class="text-xs font-bold text-gray-500">Stock Akhir</span>
+                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-4 opacity-50">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm step-inactive">4</div>
+                            <span class="text-xs font-bold text-gray-500 mt-1">Stock Akhir</span>
                         </div>
                     </div>
 
@@ -431,9 +427,9 @@
                     <div id="wizard-content" class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 min-h-[400px]"></div>
 
                     <!-- Navigasi Bawah -->
-                    <div class="flex justify-between mt-6">
-                        <button onclick="navWizard(-1)" class="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-200 transition-colors ${wizardStep === 1 ? 'invisible' : ''}">Kembali</button>
-                        <button onclick="navWizard(1)" id="btn-next-wizard" class="bg-pdark text-white px-8 py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all">${wizardStep === 3 ? 'SIMPAN LAPORAN' : 'Selanjutnya'}</button>
+                    <div class="flex justify-between mt-8 border-t border-gray-200 pt-6">
+                        <button onclick="navWizard(-1)" class="px-8 py-3 bg-white border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors ${wizardStep === 1 ? 'invisible' : ''}">Kembali</button>
+                        <button onclick="navWizard(1)" id="btn-next-wizard" class="bg-pdark text-white px-10 py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all text-lg">${wizardStep === 3 ? 'SIMPAN LAPORAN' : 'Selanjutnya'}</button>
                     </div>
                 </div>
             `;
@@ -445,68 +441,64 @@
             const container = document.getElementById('wizard-content');
             
             if (wizardStep === 1) {
-                // STEP 1: PENJUALAN
+                // STEP 1: PENJUALAN UI (Sesuai Gambar 1)
                 let totalOmzet = Number(formPenjualan.cash) + Number(formPenjualan.qris) + Number(formPenjualan.transfer);
+                let totalCup = formPenjualan.rincian.reduce((sum, i)=>sum+Number(i.qty),0);
                 
-                container.innerHTML = `
-                    <h3 class="text-xl font-black text-pdark mb-6 border-b border-gray-100 pb-4">Penjualan</h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Tanggal Shift</label>
-                            <input type="date" id="lap-tanggal" value="${formPenjualan.tanggal}" onchange="formPenjualan.tanggal=this.value" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pbg border border-transparent">
+                let productsHtml = produkListLocal.map(p => {
+                    let qty = getQtyLapProduk(p.id);
+                    return `
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100 last:border-0 hover:bg-plight px-2 rounded transition-colors">
+                        <span class="font-bold text-gray-800 text-sm md:text-base">${p.nama_produk}</span>
+                        <div class="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+                            <button onclick="ubahQtyLapProduk(${p.id}, '${p.nama_produk}', -1)" class="w-8 h-8 rounded flex items-center justify-center hover:bg-gray-100 text-gray-600 active:scale-95"><i class="ph ph-minus font-bold"></i></button>
+                            <input type="text" readonly value="${qty}" class="w-10 text-center font-bold text-gray-800 bg-transparent outline-none">
+                            <button onclick="ubahQtyLapProduk(${p.id}, '${p.nama_produk}', 1)" class="w-8 h-8 rounded bg-pdark text-white flex items-center justify-center hover:bg-opacity-90 active:scale-95"><i class="ph ph-plus font-bold"></i></button>
                         </div>
+                    </div>`;
+                }).join('');
+
+                container.innerHTML = `
+                    <h3 class="text-2xl font-black text-pdark mb-8">Penjualan</h3>
+                    
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Tanggal Shift</label>
+                        <input type="date" id="lap-tanggal" value="${formPenjualan.tanggal}" onchange="formPenjualan.tanggal=this.value" class="w-full md:w-1/3 bg-plight rounded-xl p-3 text-sm font-bold text-pdark outline-none focus:ring-2 focus:ring-pbg">
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <!-- Kolom Kiri: Rincian Produk -->
-                        <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                            <h4 class="font-bold text-pdark mb-4 text-sm uppercase">Produk Terjual</h4>
-                            <div class="flex gap-2 mb-4">
-                                <select id="lap-produk-sel" class="flex-1 bg-white rounded-xl p-3 text-sm font-semibold text-gray-700 outline-none border border-gray-200">
-                                    <option value="">-- Pilih Produk --</option>
-                                    ${produkListLocal.map(p => `<option value="${p.id}">${p.nama_produk}</option>`).join('')}
-                                </select>
-                                <input type="number" id="lap-qty-sel" placeholder="Qty" class="w-20 bg-white rounded-xl p-3 text-sm font-bold text-center outline-none border border-gray-200">
-                                <button onclick="tambahLapProduk()" class="bg-pdark text-white px-4 rounded-xl font-bold hover:bg-opacity-90"><i class="ph ph-plus"></i></button>
+                        <!-- Kolom Kiri: Produk Terjual -->
+                        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col">
+                            <h4 class="font-bold text-pdark mb-4 text-sm uppercase tracking-wider">Produk Terjual</h4>
+                            <div class="flex-1 overflow-y-auto pr-2 space-y-1 max-h-[350px]">
+                                ${productsHtml}
                             </div>
-                            <div class="space-y-2 max-h-[200px] overflow-y-auto" id="lap-produk-list">
-                                ${formPenjualan.rincian.length === 0 ? '<div class="text-xs text-gray-400 text-center py-4">Belum ada rincian produk</div>' : 
-                                  formPenjualan.rincian.map((item, idx) => `
-                                  <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
-                                      <span class="text-sm font-bold text-gray-700">${item.nama}</span>
-                                      <div class="flex items-center gap-3">
-                                          <span class="bg-plight text-pdark px-2 py-1 rounded text-xs font-black">${item.qty} Cup</span>
-                                          <button onclick="hapusLapProduk(${idx})" class="text-red-500 hover:text-red-700"><i class="ph ph-trash"></i></button>
-                                      </div>
-                                  </div>`).join('')}
-                            </div>
-                            <div class="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
-                                <span class="font-bold text-gray-500 text-sm">Total Cup</span>
-                                <span class="text-xl font-black text-pdark">${formPenjualan.rincian.reduce((sum, i)=>sum+Number(i.qty),0)} Cup</span>
+                            <div class="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center bg-plight p-4 rounded-xl">
+                                <span class="font-bold text-gray-500">Total Cup</span>
+                                <span class="text-2xl font-black text-pdark">${totalCup} Cup</span>
                             </div>
                         </div>
 
-                        <!-- Kolom Kanan: Rincian Uang -->
-                        <div class="bg-plight p-6 rounded-2xl border border-pbg/30">
-                            <h4 class="font-bold text-pdark mb-4 text-sm uppercase">Rincian Pembayaran</h4>
-                            <div class="space-y-4 mb-6">
+                        <!-- Kolom Kanan: Rincian Pembayaran -->
+                        <div class="bg-plight p-6 rounded-2xl border border-gray-200 flex flex-col">
+                            <h4 class="font-bold text-pdark mb-4 text-sm uppercase tracking-wider">Rincian Pembayaran</h4>
+                            <div class="space-y-4 mb-6 flex-1">
                                 <div>
                                     <label class="block text-xs font-bold text-gray-500 mb-1">CASH (Rp)</label>
-                                    <input type="number" value="${formPenjualan.cash}" oninput="formPenjualan.cash=this.value; hitungOmzetLap()" class="w-full bg-white rounded-xl p-3 text-sm font-bold text-pdark outline-none shadow-sm">
+                                    <input type="number" value="${formPenjualan.cash || ''}" placeholder="0" oninput="formPenjualan.cash=this.value; hitungOmzetLap()" class="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-base font-bold text-pdark outline-none focus:border-pdark shadow-sm transition-colors">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-gray-500 mb-1">QRIS (Rp)</label>
-                                    <input type="number" value="${formPenjualan.qris}" oninput="formPenjualan.qris=this.value; hitungOmzetLap()" class="w-full bg-white rounded-xl p-3 text-sm font-bold text-pdark outline-none shadow-sm">
+                                    <input type="number" value="${formPenjualan.qris || ''}" placeholder="0" oninput="formPenjualan.qris=this.value; hitungOmzetLap()" class="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-base font-bold text-pdark outline-none focus:border-pdark shadow-sm transition-colors">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-gray-500 mb-1">TRANSFER (Rp)</label>
-                                    <input type="number" value="${formPenjualan.transfer}" oninput="formPenjualan.transfer=this.value; hitungOmzetLap()" class="w-full bg-white rounded-xl p-3 text-sm font-bold text-pdark outline-none shadow-sm">
+                                    <input type="number" value="${formPenjualan.transfer || ''}" placeholder="0" oninput="formPenjualan.transfer=this.value; hitungOmzetLap()" class="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-base font-bold text-pdark outline-none focus:border-pdark shadow-sm transition-colors">
                                 </div>
                             </div>
                             <div class="pt-4 border-t border-gray-300 flex justify-between items-end">
                                 <span class="font-bold text-gray-500 uppercase text-sm">TOTAL OMZET</span>
-                                <span class="text-2xl font-black text-pdark" id="lap-total-omzet">Rp ${totalOmzet.toLocaleString('id-ID')}</span>
+                                <span class="text-3xl font-black text-pdark" id="lap-total-omzet">Rp ${totalOmzet.toLocaleString('id-ID')}</span>
                             </div>
                         </div>
                     </div>
@@ -515,17 +507,17 @@
             else if (wizardStep === 2) {
                 // STEP 2: STOCK KELUAR
                 container.innerHTML = `
-                    <h3 class="text-xl font-black text-pdark mb-6 border-b border-gray-100 pb-4">Stock Keluar (Terpakai & Lainnya)</h3>
-                    <div class="overflow-x-auto">
+                    <h3 class="text-2xl font-black text-pdark mb-6">Stock Keluar (Terpakai & Lainnya)</h3>
+                    <div class="overflow-x-auto bg-white border border-gray-200 rounded-2xl shadow-sm">
                         <table class="w-full text-left border-collapse min-w-[700px]">
                             <thead>
                                 <tr class="bg-gray-50 text-gray-500 font-bold text-xs uppercase tracking-wider border-b border-gray-200">
-                                    <th class="p-3">Bahan / Barang</th>
-                                    <th class="p-3 text-center">Terpakai (Jual)</th>
-                                    <th class="p-3 text-center">Rusak</th>
-                                    <th class="p-3 text-center">Tumpah/Lain</th>
-                                    <th class="p-3 text-center bg-plight text-pdark">Total Keluar</th>
-                                    <th class="p-3 text-center">Satuan</th>
+                                    <th class="p-4 pl-6">Bahan / Barang</th>
+                                    <th class="p-4 text-center">Terpakai (Jual)</th>
+                                    <th class="p-4 text-center">Rusak</th>
+                                    <th class="p-4 text-center">Tumpah/Lain</th>
+                                    <th class="p-4 text-center bg-plight text-pdark">Total Keluar</th>
+                                    <th class="p-4 pr-6 text-center">Satuan</th>
                                 </tr>
                             </thead>
                             <tbody class="text-sm divide-y divide-gray-100">
@@ -535,12 +527,12 @@
                                     let total = Number(d.terpakai) + Number(d.rusak) + Number(d.tumpah);
                                     return `
                                     <tr class="hover:bg-gray-50 transition-colors">
-                                        <td class="p-3 font-bold text-gray-700">${s.nama_bahan}</td>
-                                        <td class="p-3"><input type="number" value="${d.terpakai||''}" oninput="updateLapStock(${s.id}, 'terpakai', this.value)" class="w-full max-w-[80px] mx-auto block bg-white border border-gray-200 rounded p-1.5 text-center font-semibold text-sm outline-none focus:border-pbg"></td>
-                                        <td class="p-3"><input type="number" value="${d.rusak||''}" oninput="updateLapStock(${s.id}, 'rusak', this.value)" class="w-full max-w-[80px] mx-auto block bg-white border border-gray-200 rounded p-1.5 text-center font-semibold text-sm outline-none focus:border-pbg"></td>
-                                        <td class="p-3"><input type="number" value="${d.tumpah||''}" oninput="updateLapStock(${s.id}, 'tumpah', this.value)" class="w-full max-w-[80px] mx-auto block bg-white border border-gray-200 rounded p-1.5 text-center font-semibold text-sm outline-none focus:border-pbg"></td>
-                                        <td class="p-3 bg-plight text-center font-black text-pdark" id="tot-keluar-${s.id}">${total}</td>
-                                        <td class="p-3 text-center text-xs font-bold text-gray-400 uppercase">${s.satuan}</td>
+                                        <td class="p-4 pl-6 font-bold text-gray-700">${s.nama_bahan}</td>
+                                        <td class="p-4"><input type="number" value="${d.terpakai||''}" oninput="updateLapStock(${s.id}, 'terpakai', this.value)" class="w-full max-w-[80px] mx-auto block bg-white border border-gray-200 rounded-lg p-2 text-center font-semibold text-sm outline-none focus:border-pbg shadow-sm"></td>
+                                        <td class="p-4"><input type="number" value="${d.rusak||''}" oninput="updateLapStock(${s.id}, 'rusak', this.value)" class="w-full max-w-[80px] mx-auto block bg-white border border-gray-200 rounded-lg p-2 text-center font-semibold text-sm outline-none focus:border-pbg shadow-sm"></td>
+                                        <td class="p-4"><input type="number" value="${d.tumpah||''}" oninput="updateLapStock(${s.id}, 'tumpah', this.value)" class="w-full max-w-[80px] mx-auto block bg-white border border-gray-200 rounded-lg p-2 text-center font-semibold text-sm outline-none focus:border-pbg shadow-sm"></td>
+                                        <td class="p-4 bg-plight text-center font-black text-pdark" id="tot-keluar-${s.id}">${total}</td>
+                                        <td class="p-4 pr-6 text-center text-xs font-bold text-gray-400 uppercase">${s.satuan}</td>
                                     </tr>`;
                                 }).join('')}
                             </tbody>
@@ -549,80 +541,157 @@
                 `;
             }
             else if (wizardStep === 3) {
-                // STEP 3: PENGELUARAN
+                // STEP 3: PENGELUARAN UI (Sesuai Gambar 2)
                 let totPengeluaran = formPengeluaran.reduce((sum, item) => sum + (item.harga * item.qty), 0);
                 
                 container.innerHTML = `
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
-                        <h3 class="text-xl font-black text-pdark">Input Pengeluaran Operasional</h3>
-                        <div class="bg-red-50 text-red-600 px-4 py-2 rounded-xl font-black">Total: Rp ${totPengeluaran.toLocaleString('id-ID')}</div>
+                    <div class="flex justify-between items-center mb-8">
+                        <h3 class="text-2xl font-black text-pdark">Input Pengeluaran Operasional</h3>
+                        <div class="bg-red-50 text-red-600 px-5 py-2.5 rounded-xl font-black text-base shadow-sm" id="tot-pengeluaran-badge">Total Harga: Rp ${totPengeluaran.toLocaleString('id-ID')}</div>
                     </div>
                     
-                    <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-6">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                            <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Nama Barang / Keperluan</label><input type="text" id="ex-nama" class="w-full bg-white rounded-xl p-3 text-sm font-semibold border border-gray-200 outline-none"></div>
-                            <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Harga Satuan</label><input type="number" id="ex-harga" class="w-full bg-white rounded-xl p-3 text-sm font-semibold border border-gray-200 outline-none"></div>
-                            <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Jumlah</label><input type="number" id="ex-qty" class="w-full bg-white rounded-xl p-3 text-sm font-semibold border border-gray-200 outline-none"></div>
+                    <!-- Quick Add Section -->
+                    <div class="mb-8 p-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
+                        <p class="text-sm font-bold text-gray-800 mb-4">Quick Add</p>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="quickAddPengeluaran('UHT Full Cream (1L)', 20000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">1. UHT Full Cream (1L)</button>
+                            <button onclick="quickAddPengeluaran('Es Batu (10kg)', 10000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">2. Es Batu (10kg)</button>
+                            <button onclick="quickAddPengeluaran('Omela (370gr)', 12000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">3. Omela (370gr)</button>
+                            <button onclick="quickAddPengeluaran('Cup Plastik', 15000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">4. Cup Plastik (50pcs)</button>
                         </div>
-                        <button onclick="tambahPengeluaran()" class="bg-white border border-gray-300 text-gray-600 font-bold px-6 py-2.5 rounded-xl hover:bg-gray-100 text-sm shadow-sm flex items-center gap-2"><i class="ph ph-plus"></i> Tambah Item Pengeluaran</button>
                     </div>
 
-                    <div class="space-y-3">
-                        ${formPengeluaran.length === 0 ? '<div class="text-center py-8 text-gray-400 text-sm">Tidak ada pengeluaran hari ini.</div>' : 
-                          formPengeluaran.map((ex, idx) => `
-                          <div class="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                              <div>
-                                  <h4 class="font-bold text-gray-800 text-sm">${ex.nama}</h4>
-                                  <div class="text-xs text-gray-500 mt-0.5">${ex.qty} x Rp ${Number(ex.harga).toLocaleString('id-ID')}</div>
-                              </div>
-                              <div class="flex items-center gap-4">
-                                  <span class="font-black text-pdark">Rp ${(ex.harga * ex.qty).toLocaleString('id-ID')}</span>
-                                  <button onclick="hapusPengeluaran(${idx})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-100"><i class="ph ph-trash"></i></button>
-                              </div>
-                          </div>`).join('')}
+                    <!-- List Pengeluaran Dinamis -->
+                    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+                        <div class="grid grid-cols-12 gap-4 bg-gray-50 p-5 border-b border-gray-200 text-xs font-bold text-gray-800 uppercase">
+                            <div class="col-span-5 md:col-span-4">Item</div>
+                            <div class="col-span-4 md:col-span-3 text-center">Qty</div>
+                            <div class="col-span-3 md:col-span-2 text-center">Harga</div>
+                            <div class="hidden md:block col-span-2 text-right">Total Harga</div>
+                            <div class="hidden md:block col-span-1 text-center"></div>
+                        </div>
+                        <div class="divide-y divide-gray-100" id="list-pengeluaran">
+                            ${formPengeluaran.length === 0 ? '<div class="text-center py-10 text-gray-400 text-sm font-medium">Belum ada item pengeluaran yang diinput. Gunakan Quick Add atau Tambah Item Lain.</div>' : 
+                              formPengeluaran.map((ex) => `
+                              <div class="grid grid-cols-12 gap-4 p-5 items-center hover:bg-gray-50 transition-colors">
+                                  <div class="col-span-5 md:col-span-4 font-bold text-gray-700 text-sm md:text-base">${ex.nama}</div>
+                                  <div class="col-span-4 md:col-span-3 flex justify-center items-center gap-2">
+                                      <button onclick="ubahQtyPengeluaran(${ex.id}, -1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-minus font-bold"></i></button>
+                                      <span class="w-10 text-center font-black text-gray-800">${ex.qty}</span>
+                                      <button onclick="ubahQtyPengeluaran(${ex.id}, 1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-plus font-bold"></i></button>
+                                  </div>
+                                  <div class="col-span-3 md:col-span-2">
+                                      <input type="number" value="${ex.harga}" oninput="ubahHargaPengeluaran(${ex.id}, this.value)" class="w-full border border-gray-200 rounded-lg p-2.5 text-center text-sm font-semibold outline-none focus:border-pdark shadow-sm">
+                                  </div>
+                                  <div class="hidden md:block col-span-2 text-right font-black text-pdark text-base" id="tot-harga-${ex.id}">
+                                      Rp ${(ex.harga * ex.qty).toLocaleString('id-ID')}
+                                  </div>
+                                  <div class="hidden md:flex col-span-1 justify-end gap-2">
+                                      <button onclick="editNamaPengeluaran(${ex.id})" class="text-xs font-bold text-gray-500 hover:text-blue-600 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-white shadow-sm">Edit</button>
+                                      <button onclick="hapusPengeluaranItem(${ex.id})" class="text-xs font-bold text-red-500 hover:text-red-700 px-3 py-1.5 border border-red-200 rounded-lg bg-red-50 hover:bg-red-100 shadow-sm">Delete</button>
+                                  </div>
+                                  <!-- Mobile controls -->
+                                  <div class="col-span-12 flex justify-between items-center md:hidden mt-3 pt-3 border-t border-gray-100">
+                                      <span class="font-black text-pdark text-sm" id="tot-harga-mob-${ex.id}">Rp ${(ex.harga * ex.qty).toLocaleString('id-ID')}</span>
+                                      <div class="flex gap-2">
+                                          <button onclick="editNamaPengeluaran(${ex.id})" class="text-xs font-bold text-gray-500 border border-gray-200 px-2 py-1 rounded">Edit</button>
+                                          <button onclick="hapusPengeluaranItem(${ex.id})" class="text-xs font-bold text-red-500 border border-red-200 bg-red-50 px-2 py-1 rounded">Delete</button>
+                                      </div>
+                                  </div>
+                              </div>`).join('')}
+                        </div>
                     </div>
+                    
+                    <button onclick="tambahCustomPengeluaran()" class="bg-white border-2 border-pdark text-pdark font-bold px-6 py-3 rounded-xl hover:bg-plight text-sm shadow-sm flex items-center gap-2 active:scale-95 transition-all"><i class="ph ph-plus font-bold"></i> Tambah Item Lain</button>
                 `;
             }
         }
 
-        // --- Logika Pendukung Wizard ---
-        function tambahLapProduk() {
-            const sel = document.getElementById('lap-produk-sel');
-            const qty = document.getElementById('lap-qty-sel').value;
-            if(!sel.value || !qty) return;
-            const nama = sel.options[sel.selectedIndex].text;
-            formPenjualan.rincian.push({ id: sel.value, nama: nama, qty: Number(qty) });
-            sel.value = ''; document.getElementById('lap-qty-sel').value = '';
-            renderWizardStep(); // Re-render tab 1
+        // -- Logic Penjualan --
+        function getQtyLapProduk(id) {
+            let item = formPenjualan.rincian.find(x => x.id === id);
+            return item ? item.qty : 0;
         }
-        function hapusLapProduk(idx) { formPenjualan.rincian.splice(idx, 1); renderWizardStep(); }
+
+        function ubahQtyLapProduk(id, nama, delta) {
+            let item = formPenjualan.rincian.find(x => x.id === id);
+            if (item) {
+                item.qty += delta;
+                if (item.qty <= 0) {
+                    formPenjualan.rincian = formPenjualan.rincian.filter(x => x.id !== id);
+                }
+            } else if (delta > 0) {
+                formPenjualan.rincian.push({ id, nama, qty: delta });
+            }
+            renderWizardStep(); // Re-render untuk update total dan input
+        }
+
         function hitungOmzetLap() {
             let tot = Number(formPenjualan.cash) + Number(formPenjualan.qris) + Number(formPenjualan.transfer);
             document.getElementById('lap-total-omzet').textContent = 'Rp ' + tot.toLocaleString('id-ID');
         }
 
+        // -- Logic Stock Keluar --
         function updateLapStock(id, field, val) {
             formStockKeluar[id][field] = Number(val);
             let tot = Number(formStockKeluar[id].terpakai) + Number(formStockKeluar[id].rusak) + Number(formStockKeluar[id].tumpah);
             document.getElementById(`tot-keluar-${id}`).textContent = tot;
         }
 
-        function tambahPengeluaran() {
-            const nama = document.getElementById('ex-nama').value;
-            const harga = document.getElementById('ex-harga').value;
-            const qty = document.getElementById('ex-qty').value;
-            if(!nama || !harga || !qty) return alert("Lengkapi data pengeluaran!");
-            formPengeluaran.push({ nama, harga: Number(harga), qty: Number(qty) });
-            renderWizardStep(); // Re-render tab 3
+        // -- Logic Pengeluaran --
+        function quickAddPengeluaran(nama, defaultHarga) {
+            formPengeluaran.push({ id: Date.now() + Math.random(), nama: nama, qty: 1, harga: defaultHarga });
+            renderWizardStep();
         }
-        function hapusPengeluaran(idx) { formPengeluaran.splice(idx, 1); renderWizardStep(); }
+        function tambahCustomPengeluaran() {
+            let nama = prompt("Masukkan nama pengeluaran (Contoh: Sapu / Sabun):");
+            if (nama) {
+                formPengeluaran.push({ id: Date.now() + Math.random(), nama: nama, qty: 1, harga: 0 });
+                renderWizardStep();
+            }
+        }
+        function ubahQtyPengeluaran(id, delta) {
+            let item = formPengeluaran.find(x => x.id === id);
+            if (item) {
+                item.qty += delta;
+                if (item.qty < 1) item.qty = 1;
+                renderWizardStep();
+            }
+        }
+        function ubahHargaPengeluaran(id, val) {
+            let item = formPengeluaran.find(x => x.id === id);
+            if (item) {
+                item.harga = Number(val) || 0;
+                // Update text di DOM langsung agar input box tidak kehilangan fokus saat mengetik
+                let tot = item.harga * item.qty;
+                let elDesk = document.getElementById('tot-harga-'+id);
+                let elMob = document.getElementById('tot-harga-mob-'+id);
+                if(elDesk) elDesk.textContent = 'Rp ' + tot.toLocaleString('id-ID');
+                if(elMob) elMob.textContent = 'Rp ' + tot.toLocaleString('id-ID');
+                
+                // Update grand total badge
+                let grandTot = formPengeluaran.reduce((sum, i) => sum + (i.harga * i.qty), 0);
+                document.getElementById('tot-pengeluaran-badge').textContent = 'Total Harga: Rp ' + grandTot.toLocaleString('id-ID');
+            }
+        }
+        function hapusPengeluaranItem(id) {
+            formPengeluaran = formPengeluaran.filter(x => x.id !== id);
+            renderWizardStep();
+        }
+        function editNamaPengeluaran(id) {
+            let item = formPengeluaran.find(x => x.id === id);
+            if(item) {
+                let newNama = prompt("Edit nama pengeluaran:", item.nama);
+                if(newNama) { item.nama = newNama; renderWizardStep(); }
+            }
+        }
 
         async function navWizard(dir) {
             if (dir === 1 && wizardStep === 3) {
                 prosesSimpanLaporan();
             } else {
                 wizardStep += dir;
-                renderLaporanShiftView(); // Re-render entire wrapper to update stepper colors
+                renderLaporanShiftView(); 
             }
         }
 
@@ -677,7 +746,7 @@
             } else {
                 alert("✅ LAPORAN SHIFT BERHASIL DISIMPAN!\nData penjualan, stok, dan pengeluaran telah diperbarui.");
                 // Reset State
-                formPenjualan = { tanggal: new Date().toISOString().split('T')[0], rincian: [], cash: 0, qris: 0, transfer: 0 };
+                formPenjualan = { tanggal: new Date().toISOString().split('T')[0], rincian: [], cash: '', qris: '', transfer: '' };
                 formStockKeluar = {}; formPengeluaran = [];
                 // Pindah ke Dashboard
                 loadPage('dashboard');
@@ -685,7 +754,7 @@
         }
 
         // ==============================================
-        // MASTER PRODUK & STOCK (Sama Seperti Sebelumnya)
+        // MASTER DATA (PRODUK & STOCK)
         // ==============================================
         function renderMasterProdukView() {
             document.getElementById('main-content').innerHTML = `<div class="flex justify-between items-center mb-6 fade-in"><p class="text-sm text-gray-500 font-semibold">Kelola menu makanan & minuman kedai secara realtime.</p><button onclick="bukaModalProduk()" class="bg-pdark text-white font-bold px-5 py-3 rounded-xl shadow hover:bg-opacity-90 flex items-center gap-2 text-sm"><i class="ph ph-plus-circle text-lg"></i> TAMBAH MENU BARU</button></div><div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden fade-in"><table class="w-full text-left border-collapse"><thead><tr class="bg-plight text-pdark font-black text-xs uppercase tracking-wider border-b border-gray-100"><th class="p-4 pl-6">Nama Menu</th><th class="p-4">Kategori</th><th class="p-4 text-right">Harga Modal</th><th class="p-4 text-right">Harga Jual</th><th class="p-4 text-center">Status</th><th class="p-4 pr-6 text-center">Aksi</th></tr></thead><tbody id="table-body-produk" class="text-sm divide-y divide-gray-50"><tr><td colspan="6" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr></tbody></table></div>`;
