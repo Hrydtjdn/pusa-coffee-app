@@ -398,11 +398,11 @@
             if(stockListLocal.length === 0) { const {data} = await db.from('stocks').select('*').order('nama_bahan',{ascending:true}); stockListLocal = data || []; }
 
             content.innerHTML = `
-                <div class="max-w-5xl mx-auto fade-in pb-24">
+                <div class="max-w-7xl mx-auto fade-in pb-24">
                     <h2 class="text-3xl font-black text-pdark mb-8">Laporan Akhir Shift</h2>
                     
                     <!-- Stepper Nav (Minimalist style) -->
-                    <div class="flex items-center justify-between mb-8 relative">
+                    <div class="flex items-center justify-between mb-8 relative md:px-8">
                         <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-0.5 ${wizardStep > 1 ? 'step-line-active' : 'step-line-inactive'} -z-10"></div>
                         
                         <div class="flex flex-col items-center gap-2 bg-gray-50 px-4">
@@ -423,13 +423,18 @@
                         </div>
                     </div>
 
-                    <!-- Konten Step -->
-                    <div id="wizard-content" class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 min-h-[400px]"></div>
+                    <!-- KARTU WIZARD UTAMA (Navigasi masuk ke dalam sini) -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-[500px]">
+                        
+                        <!-- Konten Step Dinamis -->
+                        <div id="wizard-content" class="p-6 md:p-8 flex-1"></div>
 
-                    <!-- Navigasi Bawah -->
-                    <div class="flex justify-between mt-8 border-t border-gray-200 pt-6">
-                        <button onclick="navWizard(-1)" class="px-8 py-3 bg-white border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors ${wizardStep === 1 ? 'invisible' : ''}">Kembali</button>
-                        <button onclick="navWizard(1)" id="btn-next-wizard" class="bg-pdark text-white px-10 py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all text-lg">${wizardStep === 3 ? 'SIMPAN LAPORAN' : 'Selanjutnya'}</button>
+                        <!-- Navigasi Bawah (Sekarang tergabung di dalam Card) -->
+                        <div class="flex justify-between items-center p-6 bg-gray-50/50 border-t border-gray-100">
+                            <button onclick="navWizard(-1)" class="px-8 py-3 bg-white border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors shadow-sm ${wizardStep === 1 ? 'invisible' : ''}">Kembali</button>
+                            <button onclick="navWizard(1)" id="btn-next-wizard" class="bg-pdark text-white px-10 py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all text-lg active:scale-95">${wizardStep === 3 ? 'SIMPAN LAPORAN' : 'Selanjutnya'}</button>
+                        </div>
+
                     </div>
                 </div>
             `;
