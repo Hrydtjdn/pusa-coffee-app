@@ -18,7 +18,7 @@
                 extend: {
                     colors: {
                         pbg: '#b8d1b9',      
-                        pdark: '#1b4324', /* Disetel lebih gelap agar sesuai desain gambar */
+                        pdark: '#2a632e', /* Dikembalikan ke warna hijau aslinya */
                         plight: '#f4f7f4',   
                     },
                     borderRadius: {
@@ -33,15 +33,15 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #b8d1b9; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #1b4324; }
+        ::-webkit-scrollbar-thumb:hover { background: #2a632e; }
         
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         /* Wizard Stepper Styling */
-        .step-active { background-color: #1b4324; color: white; border-color: #1b4324; }
+        .step-active { background-color: #2a632e; color: white; border-color: #2a632e; }
         .step-inactive { background-color: #f3f4f6; color: #9ca3af; border-color: #e5e7eb; }
-        .step-line-active { background-color: #1b4324; }
+        .step-line-active { background-color: #2a632e; }
         .step-line-inactive { background-color: #e5e7eb; }
     </style>
 </head>
@@ -208,7 +208,7 @@
         let wizardStep = 1;
         let formPenjualan = { 
             tanggal: new Date().toISOString().split('T')[0], 
-            rincian: [], // Array objek: { id, nama, qty }
+            rincian: [], 
             cash: '', qris: '', transfer: '' 
         };
         let formStockKeluar = {}; 
@@ -292,10 +292,10 @@
             menuContainer.innerHTML = ''; 
             MENUS[currentUser.role].forEach(item => {
                 const btn = document.createElement('button');
-                const isHighlight = item.id === 'laporan_shift';
                 
-                btn.className = `w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all group ${isHighlight ? 'bg-pbg/20 text-white font-bold border border-pbg/30' : 'text-white/80 hover:bg-white/10 hover:text-white'}`;
-                btn.innerHTML = `<div class="flex items-center gap-3"><i class="ph ${item.icon} text-xl group-hover:text-pbg transition-colors ${isHighlight ? 'text-pbg' : ''}"></i><span class="font-medium text-sm tracking-wide">${item.label}</span></div>` + (item.sub ? `<i class="ph ph-caret-down text-xs opacity-50"></i>` : '');
+                // Menghapus isHighlight yang hardcoded agar sidebar kembali normal & seragam
+                btn.className = `w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all group text-white/80 hover:bg-white/10 hover:text-white`;
+                btn.innerHTML = `<div class="flex items-center gap-3"><i class="ph ${item.icon} text-xl group-hover:text-pbg transition-colors"></i><span class="font-medium text-sm tracking-wide">${item.label}</span></div>` + (item.sub ? `<i class="ph ph-caret-down text-xs opacity-50"></i>` : '');
                 menuContainer.appendChild(btn);
 
                 if(item.sub) {
