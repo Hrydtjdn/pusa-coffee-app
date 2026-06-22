@@ -398,7 +398,7 @@
             if(stockListLocal.length === 0) { const {data} = await db.from('stocks').select('*').order('nama_bahan',{ascending:true}); stockListLocal = data || []; }
 
             content.innerHTML = `
-                <div class="max-w-5xl mx-auto fade-in">
+                <div class="max-w-5xl mx-auto fade-in pb-24">
                     <h2 class="text-3xl font-black text-pdark mb-8">Laporan Akhir Shift</h2>
                     
                     <!-- Stepper Nav (Minimalist style) -->
@@ -514,7 +514,6 @@
                                 <tr class="bg-gray-50 text-gray-500 font-bold text-xs uppercase tracking-wider border-b border-gray-200">
                                     <th class="p-4 pl-6">Bahan / Barang</th>
                                     <th class="p-4 text-center">Terpakai (Jual)</th>
-                                    <th class="p-4 text-center">Rusak</th>
                                     <th class="p-4 text-center">Tumpah/Lain</th>
                                     <th class="p-4 text-center bg-plight text-pdark">Total Keluar</th>
                                     <th class="p-4 pr-6 text-center">Satuan</th>
@@ -522,15 +521,26 @@
                             </thead>
                             <tbody class="text-sm divide-y divide-gray-100">
                                 ${stockListLocal.map(s => {
-                                    if(!formStockKeluar[s.id]) formStockKeluar[s.id] = {terpakai:0, rusak:0, tumpah:0};
+                                    if(!formStockKeluar[s.id]) formStockKeluar[s.id] = {terpakai:0, tumpah:0};
                                     let d = formStockKeluar[s.id];
-                                    let total = Number(d.terpakai) + Number(d.rusak) + Number(d.tumpah);
+                                    let total = Number(d.terpakai) + Number(d.tumpah);
                                     return `
                                     <tr class="hover:bg-gray-50 transition-colors">
                                         <td class="p-4 pl-6 font-bold text-gray-700">${s.nama_bahan}</td>
-                                        <td class="p-4"><input type="number" value="${d.terpakai||''}" oninput="updateLapStock(${s.id}, 'terpakai', this.value)" class="w-full max-w-[80px] mx-auto block bg-white border border-gray-200 rounded-lg p-2 text-center font-semibold text-sm outline-none focus:border-pbg shadow-sm"></td>
-                                        <td class="p-4"><input type="number" value="${d.rusak||''}" oninput="updateLapStock(${s.id}, 'rusak', this.value)" class="w-full max-w-[80px] mx-auto block bg-white border border-gray-200 rounded-lg p-2 text-center font-semibold text-sm outline-none focus:border-pbg shadow-sm"></td>
-                                        <td class="p-4"><input type="number" value="${d.tumpah||''}" oninput="updateLapStock(${s.id}, 'tumpah', this.value)" class="w-full max-w-[80px] mx-auto block bg-white border border-gray-200 rounded-lg p-2 text-center font-semibold text-sm outline-none focus:border-pbg shadow-sm"></td>
+                                        <td class="p-4">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <button onclick="ubahLapStock(${s.id}, 'terpakai', -1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-minus font-bold"></i></button>
+                                                <input type="number" value="${d.terpakai||0}" onchange="setLapStock(${s.id}, 'terpakai', this.value)" class="w-12 text-center font-bold text-gray-800 bg-transparent outline-none focus:border-pdark">
+                                                <button onclick="ubahLapStock(${s.id}, 'terpakai', 1)" class="w-8 h-8 rounded bg-pbg/30 text-pdark flex items-center justify-center hover:bg-pbg/60 active:scale-95 shadow-sm"><i class="ph ph-plus font-bold"></i></button>
+                                            </div>
+                                        </td>
+                                        <td class="p-4">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <button onclick="ubahLapStock(${s.id}, 'tumpah', -1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-minus font-bold"></i></button>
+                                                <input type="number" value="${d.tumpah||0}" onchange="setLapStock(${s.id}, 'tumpah', this.value)" class="w-12 text-center font-bold text-gray-800 bg-transparent outline-none focus:border-pdark">
+                                                <button onclick="ubahLapStock(${s.id}, 'tumpah', 1)" class="w-8 h-8 rounded bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 active:scale-95 shadow-sm"><i class="ph ph-plus font-bold"></i></button>
+                                            </div>
+                                        </td>
                                         <td class="p-4 bg-plight text-center font-black text-pdark" id="tot-keluar-${s.id}">${total}</td>
                                         <td class="p-4 pr-6 text-center text-xs font-bold text-gray-400 uppercase">${s.satuan}</td>
                                     </tr>`;
@@ -554,48 +564,46 @@
                     <div class="mb-8 p-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
                         <p class="text-sm font-bold text-gray-800 mb-4">Quick Add</p>
                         <div class="flex flex-wrap gap-3">
-                            <button onclick="quickAddPengeluaran('UHT Full Cream (1L)', 20000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">1. UHT Full Cream (1L)</button>
+                            <button onclick="quickAddPengeluaran('UHT Full Cream (946ml)', 23000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">1. UHT Full Cream (946ml)</button>
                             <button onclick="quickAddPengeluaran('Es Batu (10kg)', 10000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">2. Es Batu (10kg)</button>
                             <button onclick="quickAddPengeluaran('Omela (370gr)', 12000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">3. Omela (370gr)</button>
-                            <button onclick="quickAddPengeluaran('Cup Plastik', 15000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">4. Cup Plastik (50pcs)</button>
+                            <button onclick="quickAddPengeluaran('Omela (490gr)', 15000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">4. Omela (490gr)</button>
                         </div>
                     </div>
 
                     <!-- List Pengeluaran Dinamis -->
                     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
-                        <div class="grid grid-cols-12 gap-4 bg-gray-50 p-5 border-b border-gray-200 text-xs font-bold text-gray-800 uppercase">
-                            <div class="col-span-5 md:col-span-4">Item</div>
-                            <div class="col-span-4 md:col-span-3 text-center">Qty</div>
-                            <div class="col-span-3 md:col-span-2 text-center">Harga</div>
-                            <div class="hidden md:block col-span-2 text-right">Total Harga</div>
-                            <div class="hidden md:block col-span-1 text-center"></div>
+                        <div class="hidden md:flex justify-between gap-4 bg-gray-50 p-5 border-b border-gray-200 text-xs font-bold text-gray-800 uppercase">
+                            <div class="flex-1">Item</div>
+                            <div class="w-32 text-center">Qty</div>
+                            <div class="w-32 text-center">Harga</div>
+                            <div class="w-32 text-right">Total Harga</div>
+                            <div class="w-24 text-center">Aksi</div>
                         </div>
                         <div class="divide-y divide-gray-100" id="list-pengeluaran">
                             ${formPengeluaran.length === 0 ? '<div class="text-center py-10 text-gray-400 text-sm font-medium">Belum ada item pengeluaran yang diinput. Gunakan Quick Add atau Tambah Item Lain.</div>' : 
                               formPengeluaran.map((ex) => `
-                              <div class="grid grid-cols-12 gap-4 p-5 items-center hover:bg-gray-50 transition-colors">
-                                  <div class="col-span-5 md:col-span-4 font-bold text-gray-700 text-sm md:text-base">${ex.nama}</div>
-                                  <div class="col-span-4 md:col-span-3 flex justify-center items-center gap-2">
-                                      <button onclick="ubahQtyPengeluaran(${ex.id}, -1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-minus font-bold"></i></button>
-                                      <span class="w-10 text-center font-black text-gray-800">${ex.qty}</span>
-                                      <button onclick="ubahQtyPengeluaran(${ex.id}, 1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-plus font-bold"></i></button>
-                                  </div>
-                                  <div class="col-span-3 md:col-span-2">
-                                      <input type="number" value="${ex.harga}" oninput="ubahHargaPengeluaran(${ex.id}, this.value)" class="w-full border border-gray-200 rounded-lg p-2.5 text-center text-sm font-semibold outline-none focus:border-pdark shadow-sm">
-                                  </div>
-                                  <div class="hidden md:block col-span-2 text-right font-black text-pdark text-base" id="tot-harga-${ex.id}">
-                                      Rp ${(ex.harga * ex.qty).toLocaleString('id-ID')}
-                                  </div>
-                                  <div class="hidden md:flex col-span-1 justify-end gap-2">
-                                      <button onclick="editNamaPengeluaran(${ex.id})" class="text-xs font-bold text-gray-500 hover:text-blue-600 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-white shadow-sm">Edit</button>
-                                      <button onclick="hapusPengeluaranItem(${ex.id})" class="text-xs font-bold text-red-500 hover:text-red-700 px-3 py-1.5 border border-red-200 rounded-lg bg-red-50 hover:bg-red-100 shadow-sm">Delete</button>
-                                  </div>
-                                  <!-- Mobile controls -->
-                                  <div class="col-span-12 flex justify-between items-center md:hidden mt-3 pt-3 border-t border-gray-100">
-                                      <span class="font-black text-pdark text-sm" id="tot-harga-mob-${ex.id}">Rp ${(ex.harga * ex.qty).toLocaleString('id-ID')}</span>
-                                      <div class="flex gap-2">
-                                          <button onclick="editNamaPengeluaran(${ex.id})" class="text-xs font-bold text-gray-500 border border-gray-200 px-2 py-1 rounded">Edit</button>
-                                          <button onclick="hapusPengeluaranItem(${ex.id})" class="text-xs font-bold text-red-500 border border-red-200 bg-red-50 px-2 py-1 rounded">Delete</button>
+                              <div class="flex flex-col md:flex-row justify-between md:items-center p-5 hover:bg-gray-50 transition-colors gap-4">
+                                  <div class="flex-1 font-bold text-gray-700 text-sm md:text-base">${ex.nama}</div>
+                                  
+                                  <div class="flex flex-wrap md:flex-nowrap items-center justify-between md:justify-end gap-4 w-full md:w-auto">
+                                      <div class="flex items-center gap-2">
+                                          <button onclick="ubahQtyPengeluaran(${ex.id}, -1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-minus font-bold"></i></button>
+                                          <span class="w-8 text-center font-black text-gray-800">${ex.qty}</span>
+                                          <button onclick="ubahQtyPengeluaran(${ex.id}, 1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-plus font-bold"></i></button>
+                                      </div>
+                                      
+                                      <div class="w-full md:w-32">
+                                          <input type="number" value="${ex.harga}" oninput="ubahHargaPengeluaran(${ex.id}, this.value)" class="w-full border border-gray-200 rounded-lg p-2 text-center text-sm font-semibold outline-none focus:border-pdark shadow-sm">
+                                      </div>
+                                      
+                                      <div class="w-full md:w-32 text-right font-black text-pdark text-base" id="tot-harga-${ex.id}">
+                                          Rp ${(ex.harga * ex.qty).toLocaleString('id-ID')}
+                                      </div>
+                                      
+                                      <div class="flex gap-2 shrink-0">
+                                          <button onclick="editNamaPengeluaran(${ex.id})" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm" title="Edit Data"><i class="ph ph-pencil-simple text-lg"></i></button>
+                                          <button onclick="hapusPengeluaranItem(${ex.id})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors shadow-sm" title="Hapus Data"><i class="ph ph-trash text-lg"></i></button>
                                       </div>
                                   </div>
                               </div>`).join('')}
@@ -632,10 +640,21 @@
         }
 
         // -- Logic Stock Keluar --
-        function updateLapStock(id, field, val) {
-            formStockKeluar[id][field] = Number(val);
-            let tot = Number(formStockKeluar[id].terpakai) + Number(formStockKeluar[id].rusak) + Number(formStockKeluar[id].tumpah);
-            document.getElementById(`tot-keluar-${id}`).textContent = tot;
+        function ubahLapStock(id, field, delta) {
+            if(!formStockKeluar[id]) formStockKeluar[id] = {terpakai:0, tumpah:0};
+            let current = Number(formStockKeluar[id][field]) || 0;
+            let newValue = current + delta;
+            if(newValue < 0) newValue = 0;
+            formStockKeluar[id][field] = newValue;
+            renderWizardStep();
+        }
+        
+        function setLapStock(id, field, val) {
+            if(!formStockKeluar[id]) formStockKeluar[id] = {terpakai:0, tumpah:0};
+            let newValue = Number(val) || 0;
+            if(newValue < 0) newValue = 0;
+            formStockKeluar[id][field] = newValue;
+            renderWizardStep();
         }
 
         // -- Logic Pengeluaran --
@@ -720,7 +739,7 @@
             for (const stock of stockListLocal) {
                 let d = formStockKeluar[stock.id];
                 if (d) {
-                    let totalKeluar = Number(d.terpakai) + Number(d.rusak) + Number(d.tumpah);
+                    let totalKeluar = Number(d.terpakai) + Number(d.tumpah);
                     if (totalKeluar > 0) {
                         let newQty = Number(stock.qty) - totalKeluar;
                         await db.from('stocks').update({ qty: newQty }).eq('id', stock.id);
