@@ -412,19 +412,19 @@
             if(produkListLocal.length === 0) { const {data} = await db.from('products').select('*').eq('status', 'Tersedia'); produkListLocal = data || []; }
             if(stockListLocal.length === 0) { const {data} = await db.from('stocks').select('*').order('nama_bahan',{ascending:true}); stockListLocal = data || []; }
 
+            // Logika Tombol Kembali Bawah Kiri
+            let btnKembaliHtml = '';
+            if (wizardStep > 1) {
+                btnKembaliHtml = '<button onclick="navWizard(-1)" class="px-8 py-3 bg-white border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors shadow-sm">Kembali</button>';
+            } else if (wizardStep === 1 && typeof isEditLaporan !== 'undefined' && isEditLaporan) {
+                btnKembaliHtml = '<button onclick="batalkanKoreksi()" class="px-8 py-3 bg-white border border-red-200 rounded-xl font-bold text-red-500 hover:bg-red-50 transition-colors shadow-sm">Batal Koreksi</button>';
+            } else {
+                btnKembaliHtml = '<div class="invisible px-8 py-3">Batal</div>';
+            }
+
+            // Container menggunakan flex-col setinggi layar sisa (100vh - 8rem header/padding)
             content.innerHTML = `
-                <div class="max-w-7xl mx-auto fade-in pb-16">
-                    
-                    <!-- NEW TABBED BAR -->
-                    <div class="flex rounded-xl border border-gray-300 overflow-hidden mb-6 shadow-sm bg-white">
-                        <button onclick="setWizard(1)" class="flex-1 py-3 text-sm md:text-base font-bold flex items-center justify-center gap-2 transition-colors ${wizardStep===1?'bg-pdark text-white':'text-gray-600 hover:bg-gray-50'}">
-                            <span class="${wizardStep===1?'':'text-pdark'}">1</span> Penjualan
-                        </button>
-                        <button onclick="setWizard(2)" class="flex-1 py-3 text-sm md:text-base font-bold border-l border-gray-300 flex items-center justify-center gap-2 transition-colors ${wizardStep===2?'bg-pdark text-white':'text-gray-600 hover:bg-gray-50'}">
-                            <span class="${wizardStep===2?'':'text-gray-400'}">2</span> Stock Keluar
-                        </button>
-                        <button onclick="setWizard(3)" class="flex-1 py-3 text-sm md:text-base font-bold border-l border-gray-300 flex items-center justify-center gap-2 transition-colors ${wizardStep===3?'bg-pdark text-white':'text-gray-600 hover:bg-gray-50'}">
-                            <span class="${wizardStep===3?'':'text-gray-400'}">3</span> Pengeluaran
+                <div class="max-w-7xl mx-auto h-[calc(100vh-6rem)] flex flex-col fade-in pb-4">
                         </button>
                         <button class="flex-1 py-3 text-sm md:text-base font-bold border-l border-gray-300 flex items-center justify-center gap-2 text-gray-400 bg-gray-50 cursor-not-allowed">
                             <span>4</span> Stock Akhir
@@ -432,12 +432,12 @@
                     </div>
 
                     <!-- KARTU KONTEN UTAMA -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                        
-                        <div id="wizard-content" class="p-6 lg:p-8"></div>
+                        <!-- Area Konten (Bisa di-scroll jika diperlukan, tanpa margin/padding berlebih) -->
+                        <div id="wizard-content" class="p-6 lg:p-8 flex-1 overflow-y-auto"></div>
 
-                        <div class="flex justify-between items-center p-5 lg:p-6 bg-white border-t border-gray-100">
-                            <button onclick="navWizard(-1)" class="px-8 py-3 bg-white border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors shadow-sm ${wizardStep === 1 ? 'invisible' : ''}">Kembali</button>
+                        <!-- Area Navigasi Bawah (Menempel tetap di bawah kartu) -->
+                        <div class="flex justify-between items-center p-5 lg:p-6 bg-white border-t border-gray-100 shrink-0">
+                            ${btnKembaliHtml}
                             <button onclick="navWizard(1)" id="btn-next-wizard" class="bg-pdark text-white px-10 py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all active:scale-95">${wizardStep === 3 ? 'SIMPAN LAPORAN' : 'Selanjutnya'}</button>
                         </div>
 
@@ -703,19 +703,31 @@
             else { wizardStep += dir; renderLaporanShiftView(); }
         }
 
+        function batalkanKoreksi() {
+            isEditLaporan = false;
+            oldReportData = null;
+            formPenjualan = { tanggal: new Date().toISOString().split('T')[0], rincian: [], cash: '', qris: '', transfer: '' };
+            formStockKeluar = {}; formPengeluaran = [];
+            loadPage('laporan', 'Penjualan');
+        }
+
         async function prosesSimpanLaporan() {
             const btn = document.getElementById('btn-next-wizard');
             btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Menyimpan...';
             btn.disabled = true;
 
-            const totalOmzet = Number(formPenjualan.cash) + Number(formPenjualan.qris) + Number(formPenjualan.transfer);
+            // FIX NUMERIC ERROR: Mengubah nilai string kosong ('') menjadi 0
+            const omzetCash = Number(formPenjualan.cash) || 0;
+            const omzetQris = Number(formPenjualan.qris) || 0;
+            const omzetTransfer = Number(formPenjualan.transfer) || 0;
+            const totalOmzet = omzetCash + omzetQris + omzetTransfer;
             const totalCup = formPenjualan.rincian.reduce((sum, i) => sum + i.qty, 0);
 
             try {
-                // 1. Kalkulasi dan Update Perbedaan Stok (Stock Delta) jika mode Edit
+                // 1. Kalkulasi dan Update Perbedaan Stok (Stock Delta)
                 for (const stock of stockListLocal) {
                     let oldKeluar = 0;
-                    if (isEditLaporan && oldReportData && oldReportData.detail_stock_keluar) {
+                    if (typeof isEditLaporan !== 'undefined' && isEditLaporan && oldReportData && oldReportData.detail_stock_keluar) {
                         let oldD = oldReportData.detail_stock_keluar[stock.id];
                         if(oldD) oldKeluar = Number(oldD.terpakai) + Number(oldD.tumpah);
                     }
@@ -726,7 +738,7 @@
                         newKeluar = Number(newD.terpakai) + Number(newD.tumpah);
                     }
 
-                    let diff = newKeluar - oldKeluar; // positif = stok berkurang lagi, negatif = stok kembali
+                    let diff = newKeluar - oldKeluar;
                     
                     if (diff !== 0) {
                         let { data: currentStock } = await db.from('stocks').select('qty').eq('id', stock.id).single();
@@ -737,32 +749,36 @@
                     }
                 }
 
-                // 2. Hapus data lama jika dalam mode Edit agar bersih saat di-replace
-                if (isEditLaporan) {
+                if (typeof isEditLaporan !== 'undefined' && isEditLaporan) {
                     await db.from('shift_reports').delete().eq('tanggal', formPenjualan.tanggal);
                     await db.from('expenses').delete().eq('tanggal', formPenjualan.tanggal);
                 }
 
-                // 3. Insert Data Shift Report Baru/Update
                 const { error: err1 } = await db.from('shift_reports').insert([{
                     tanggal: formPenjualan.tanggal, kasir_nama: currentUser.nama, total_cup: totalCup,
-                    omzet_cash: formPenjualan.cash, omzet_qris: formPenjualan.qris, omzet_transfer: formPenjualan.transfer,
+                    omzet_cash: omzetCash, omzet_qris: omzetQris, omzet_transfer: omzetTransfer,
                     total_omzet: totalOmzet, detail_penjualan: formPenjualan.rincian, detail_stock_keluar: formStockKeluar
                 }]);
                 if (err1) throw err1;
 
-                // 4. Insert Data Pengeluaran Baru
                 if (formPengeluaran.length > 0) {
-                    const expPayload = formPengeluaran.map(ex => ({ tanggal: formPenjualan.tanggal, nama_barang: ex.nama, harga: ex.harga, qty: ex.qty, total: ex.harga * ex.qty }));
+                    const expPayload = formPengeluaran.map(ex => ({ 
+                        tanggal: formPenjualan.tanggal, 
+                        nama_barang: ex.nama, 
+                        harga: Number(ex.harga) || 0, 
+                        qty: Number(ex.qty) || 1, 
+                        total: (Number(ex.harga) || 0) * (Number(ex.qty) || 1) 
+                    }));
                     const { error: err2 } = await db.from('expenses').insert(expPayload);
                     if (err2) throw err2;
                 }
 
-                alert(isEditLaporan ? "✅ LAPORAN BERHASIL DIKOREKSI!" : "✅ LAPORAN SHIFT BERHASIL DISIMPAN!");
+                alert((typeof isEditLaporan !== 'undefined' && isEditLaporan) ? "✅ LAPORAN BERHASIL DIKOREKSI!" : "✅ LAPORAN SHIFT BERHASIL DISIMPAN!");
                 
-                let wasEdit = isEditLaporan;
-                isEditLaporan = false;
-                oldReportData = null;
+                let wasEdit = typeof isEditLaporan !== 'undefined' ? isEditLaporan : false;
+                if(typeof isEditLaporan !== 'undefined') isEditLaporan = false;
+                if(typeof oldReportData !== 'undefined') oldReportData = null;
+                
                 formPenjualan = { tanggal: new Date().toISOString().split('T')[0], rincian: [], cash: '', qris: '', transfer: '' };
                 formStockKeluar = {}; formPengeluaran = [];
                 
