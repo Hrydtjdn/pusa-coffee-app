@@ -18,7 +18,7 @@
                 extend: {
                     colors: {
                         pbg: '#b8d1b9',      
-                        pdark: '#2a632e', /* Dikembalikan ke warna hijau aslinya */
+                        pdark: '#2a632e', 
                         plight: '#f4f7f4',   
                     },
                     borderRadius: {
@@ -35,14 +35,8 @@
         ::-webkit-scrollbar-thumb { background: #b8d1b9; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #2a632e; }
         
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Wizard Stepper Styling */
-        .step-active { background-color: #2a632e; color: white; border-color: #2a632e; }
-        .step-inactive { background-color: #f3f4f6; color: #9ca3af; border-color: #e5e7eb; }
-        .step-line-active { background-color: #2a632e; }
-        .step-line-inactive { background-color: #e5e7eb; }
     </style>
 </head>
 <body class="bg-pbg text-gray-800 font-sans antialiased overflow-hidden">
@@ -130,7 +124,7 @@
             </div>
 
             <!-- KONTEN UTAMA DINAMIS -->
-            <div class="flex-1 overflow-y-auto p-8 bg-gray-50 fade-in relative" id="main-content"></div>
+            <div class="flex-1 overflow-y-auto p-8 bg-gray-50 relative" id="main-content"></div>
             <div class="absolute bottom-0 right-0 w-96 h-96 bg-pbg opacity-20 rounded-tl-full pointer-events-none -z-10"></div>
         </div>
     </div>
@@ -158,6 +152,7 @@
             </form>
         </div>
     </div>
+
     <!-- Modal Stock -->
     <div id="modal-stock" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl fade-in">
@@ -293,7 +288,6 @@
             MENUS[currentUser.role].forEach(item => {
                 const btn = document.createElement('button');
                 
-                // Menghapus isHighlight yang hardcoded agar sidebar kembali normal & seragam
                 btn.className = `w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all group text-white/80 hover:bg-white/10 hover:text-white`;
                 btn.innerHTML = `<div class="flex items-center gap-3"><i class="ph ${item.icon} text-xl group-hover:text-pbg transition-colors"></i><span class="font-medium text-sm tracking-wide">${item.label}</span></div>` + (item.sub ? `<i class="ph ph-caret-down text-xs opacity-50"></i>` : '');
                 menuContainer.appendChild(btn);
@@ -321,7 +315,7 @@
             
             if (pageId === 'master' && title === 'Master Produk') { renderMasterProdukView(); return; }
             if (pageId === 'stock' && title === 'Stock Masuk') { renderStockView(); return; }
-            if (pageId === 'laporan_shift') { wizardStep = 1; renderLaporanShiftView(); return; }
+            if (pageId === 'laporan_shift' || title === 'Input Laporan Shift') { wizardStep = 1; renderLaporanShiftView(); return; }
 
             const content = document.getElementById('main-content');
             content.innerHTML = '<div class="flex justify-center mt-20"><i class="ph ph-spinner animate-spin text-4xl text-pdark"></i></div>';
@@ -329,7 +323,7 @@
             setTimeout(async () => {
                 if(pageId === 'dashboard') renderDashboardView();
                 else renderDefaultView(title);
-            }, 250);
+            }, 200);
         }
 
         async function renderDashboardView() {
@@ -338,14 +332,12 @@
             let totalOmzet = 0; let labaBersih = 0; let totalCup = 0; let totalPengeluaran = 0;
             
             try {
-                // Tarik Data Penjualan
                 const { data: reports } = await db.from('shift_reports').select('total_omzet, total_cup');
                 if (reports) {
                     totalOmzet = reports.reduce((sum, r) => sum + Number(r.total_omzet), 0);
                     totalCup = reports.reduce((sum, r) => sum + Number(r.total_cup), 0);
                 }
 
-                // Tarik Data Pengeluaran
                 const { data: expenses } = await db.from('expenses').select('total');
                 if (expenses) {
                     totalPengeluaran = expenses.reduce((sum, e) => sum + Number(e.total), 0);
@@ -353,7 +345,6 @@
 
                 labaBersih = totalOmzet - totalPengeluaran;
 
-                // Tarik Stok Menipis
                 const { data: dbStocks, error } = await db.from('stocks').select('nama_bahan, qty, satuan').lt('qty', 50).limit(4);
                 let lowStockData = (!error && dbStocks) ? dbStocks.map(s => ({ item: s.nama_bahan, sisa: s.qty + " " + s.satuan })) : [];
                 
@@ -365,95 +356,99 @@
             } catch(err) { console.log(err); }
 
             content.innerHTML = `
-                <div class="bg-white p-4 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end fade-in border border-gray-50">
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">DARI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">SAMPAI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
-                    <button class="bg-pdark text-white px-6 py-2 rounded-xl text-sm font-bold shadow hover:bg-opacity-90 flex items-center gap-2"><i class="ph ph-funnel"></i> TERAPKAN</button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 fade-in">
-                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-up text-2xl text-green-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Total Omzet</div><div class="text-xl font-black text-gray-800 mt-1">Rp ${totalOmzet.toLocaleString('id-ID')}</div></div></div>
-                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-pbg rounded-2xl flex items-center justify-center"><i class="ph ph-money text-2xl text-pdark"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Laba Bersih</div><div class="text-xl font-black text-gray-800 mt-1">Rp ${labaBersih.toLocaleString('id-ID')}</div></div></div>
-                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center"><i class="ph ph-coffee text-2xl text-orange-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Cup Terjual</div><div class="text-xl font-black text-gray-800 mt-1">${totalCup} Cup</div></div></div>
-                    <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-down text-2xl text-red-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Pengeluaran</div><div class="text-xl font-black text-gray-800 mt-1">Rp ${totalPengeluaran.toLocaleString('id-ID')}</div></div></div>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
-                    <div class="bg-white p-6 rounded-3xl shadow-sm col-span-2 border border-gray-50 flex flex-col">
-                        <h3 class="font-bold text-pdark mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-chart-line-up"></i> Tren Penjualan</h3>
-                        <div class="flex-1 bg-plight rounded-2xl flex items-center justify-center border border-dashed border-pdark/30 min-h-[250px]"><p class="text-gray-500 font-medium text-sm">Grafik segera tersedia.</p></div>
+                <div class="fade-in">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end border border-gray-50">
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1">DARI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1">SAMPAI TANGGAL</label><input type="date" class="bg-plight rounded-xl px-4 py-2 text-sm text-pdark outline-none focus:ring-2 focus:ring-pbg"></div>
+                        <button class="bg-pdark text-white px-6 py-2 rounded-xl text-sm font-bold shadow hover:bg-opacity-90 flex items-center gap-2"><i class="ph ph-funnel"></i> TERAPKAN</button>
                     </div>
-                    <div class="flex flex-col gap-6">
-                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
-                            <h3 class="font-bold text-red-600 mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-warning-circle"></i> Stok Menipis</h3>
-                            <div class="space-y-3">${htmlStok}</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-up text-2xl text-green-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Total Omzet</div><div class="text-xl font-black text-gray-800 mt-1">Rp ${totalOmzet.toLocaleString('id-ID')}</div></div></div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-pbg rounded-2xl flex items-center justify-center"><i class="ph ph-money text-2xl text-pdark"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Laba Bersih</div><div class="text-xl font-black text-gray-800 mt-1">Rp ${labaBersih.toLocaleString('id-ID')}</div></div></div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center"><i class="ph ph-coffee text-2xl text-orange-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Cup Terjual</div><div class="text-xl font-black text-gray-800 mt-1">${totalCup} Cup</div></div></div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4 border border-gray-50"><div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center"><i class="ph ph-trend-down text-2xl text-red-600"></i></div><div><div class="text-xs font-bold text-gray-400 uppercase">Pengeluaran</div><div class="text-xl font-black text-gray-800 mt-1">Rp ${totalPengeluaran.toLocaleString('id-ID')}</div></div></div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-3xl shadow-sm col-span-2 border border-gray-50 flex flex-col">
+                            <h3 class="font-bold text-pdark mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-chart-line-up"></i> Tren Penjualan</h3>
+                            <div class="flex-1 bg-plight rounded-2xl flex items-center justify-center border border-dashed border-pdark/30 min-h-[250px]"><p class="text-gray-500 font-medium text-sm">Grafik segera tersedia.</p></div>
+                        </div>
+                        <div class="flex flex-col gap-6">
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
+                                <h3 class="font-bold text-red-600 mb-4 uppercase text-sm flex items-center gap-2"><i class="ph ph-warning-circle"></i> Stok Menipis</h3>
+                                <div class="space-y-3">${htmlStok}</div>
+                            </div>
                         </div>
                     </div>
                 </div>`;
         }
 
+        // ==============================================
+        // LAPORAN AKHIR SHIFT (NEW WIZARD UI)
+        // ==============================================
         async function renderLaporanShiftView() {
             const content = document.getElementById('main-content');
             
-            // Tarik master data
-            if(produkListLocal.length === 0) { const {data} = await db.from('products').select('*'); produkListLocal = data || []; }
+            // Tarik master data jika kosong
+            if(produkListLocal.length === 0) { const {data} = await db.from('products').select('*').eq('status', 'Tersedia'); produkListLocal = data || []; }
             if(stockListLocal.length === 0) { const {data} = await db.from('stocks').select('*').order('nama_bahan',{ascending:true}); stockListLocal = data || []; }
 
+            // Container menggunakan flex-col setinggi layar sisa (100vh - 8rem header/padding)
             content.innerHTML = `
-                <div class="max-w-7xl mx-auto fade-in pb-24">
-                    <h2 class="text-3xl font-black text-pdark mb-8">Laporan Akhir Shift</h2>
+                <div class="max-w-7xl mx-auto h-[calc(100vh-6rem)] flex flex-col fade-in pb-4">
                     
-                    <!-- Stepper Nav (Minimalist style) -->
-                    <div class="flex items-center justify-between mb-8 relative md:px-8">
-                        <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-0.5 ${wizardStep > 1 ? 'step-line-active' : 'step-line-inactive'} -z-10"></div>
-                        
-                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-4">
-                            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${wizardStep >= 1 ? 'step-active' : 'step-inactive'}">1</div>
-                            <span class="text-xs font-bold text-gray-500 mt-1">Penjualan</span>
-                        </div>
-                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-4">
-                            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${wizardStep >= 2 ? 'step-active' : 'step-inactive'}">2</div>
-                            <span class="text-xs font-bold text-gray-500 mt-1">Stock Keluar</span>
-                        </div>
-                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-4">
-                            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${wizardStep >= 3 ? 'step-active' : 'step-inactive'}">3</div>
-                            <span class="text-xs font-bold text-gray-500 mt-1">Pengeluaran</span>
-                        </div>
-                        <div class="flex flex-col items-center gap-2 bg-gray-50 px-4 opacity-50">
-                            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm step-inactive">4</div>
-                            <span class="text-xs font-bold text-gray-500 mt-1">Stock Akhir</span>
-                        </div>
+                    <!-- NEW TABBED BAR (Horizontal Segment) -->
+                    <div class="flex rounded-xl border border-gray-300 overflow-hidden mb-6 shadow-sm bg-white shrink-0">
+                        <button onclick="setWizard(1)" class="flex-1 py-3 text-sm md:text-base font-bold flex items-center justify-center gap-2 transition-colors ${wizardStep===1?'bg-pdark text-white':'text-gray-600 hover:bg-gray-50'}">
+                            <span class="${wizardStep===1?'':'text-pdark'}">1</span> Penjualan
+                        </button>
+                        <button onclick="setWizard(2)" class="flex-1 py-3 text-sm md:text-base font-bold border-l border-gray-300 flex items-center justify-center gap-2 transition-colors ${wizardStep===2?'bg-pdark text-white':'text-gray-600 hover:bg-gray-50'}">
+                            <span class="${wizardStep===2?'':'text-gray-400'}">2</span> Stock Keluar
+                        </button>
+                        <button onclick="setWizard(3)" class="flex-1 py-3 text-sm md:text-base font-bold border-l border-gray-300 flex items-center justify-center gap-2 transition-colors ${wizardStep===3?'bg-pdark text-white':'text-gray-600 hover:bg-gray-50'}">
+                            <span class="${wizardStep===3?'':'text-gray-400'}">3</span> Pengeluaran
+                        </button>
+                        <button class="flex-1 py-3 text-sm md:text-base font-bold border-l border-gray-300 flex items-center justify-center gap-2 text-gray-400 bg-gray-50 cursor-not-allowed">
+                            <span>4</span> Stock Akhir
+                        </button>
                     </div>
 
-                    <!-- KARTU WIZARD UTAMA (Navigasi masuk ke dalam sini) -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-[500px]">
+                    <!-- KARTU KONTEN UTAMA (Fleksibel, memakan sisa tinggi) -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 min-h-0">
                         
-                        <!-- Konten Step Dinamis -->
-                        <div id="wizard-content" class="p-6 md:p-8 flex-1"></div>
+                        <!-- Area Konten (Bisa di-scroll jika diperlukan, tanpa margin/padding berlebih) -->
+                        <div id="wizard-content" class="p-6 lg:p-8 flex-1 overflow-y-auto"></div>
 
-                        <!-- Navigasi Bawah (Sekarang tergabung di dalam Card) -->
-                        <div class="flex justify-between items-center p-6 bg-gray-50/50 border-t border-gray-100">
+                        <!-- Area Navigasi Bawah (Menempel tetap di bawah kartu) -->
+                        <div class="flex justify-between items-center p-5 lg:p-6 bg-white border-t border-gray-100 shrink-0">
                             <button onclick="navWizard(-1)" class="px-8 py-3 bg-white border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors shadow-sm ${wizardStep === 1 ? 'invisible' : ''}">Kembali</button>
-                            <button onclick="navWizard(1)" id="btn-next-wizard" class="bg-pdark text-white px-10 py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all text-lg active:scale-95">${wizardStep === 3 ? 'SIMPAN LAPORAN' : 'Selanjutnya'}</button>
+                            <button onclick="navWizard(1)" id="btn-next-wizard" class="bg-pdark text-white px-10 py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all active:scale-95">${wizardStep === 3 ? 'SIMPAN LAPORAN' : 'Selanjutnya'}</button>
                         </div>
 
                     </div>
                 </div>
             `;
 
-            renderWizardStep();
+            renderWizardContent();
         }
 
-        function renderWizardStep() {
+        function setWizard(step) {
+            wizardStep = step;
+            renderLaporanShiftView();
+        }
+
+        function renderWizardContent() {
             const container = document.getElementById('wizard-content');
             
             if (wizardStep === 1) {
-                // STEP 1: PENJUALAN UI (Sesuai Gambar 1)
+                // STEP 1: PENJUALAN
                 let totalOmzet = Number(formPenjualan.cash) + Number(formPenjualan.qris) + Number(formPenjualan.transfer);
                 let totalCup = formPenjualan.rincian.reduce((sum, i)=>sum+Number(i.qty),0);
                 
                 let productsHtml = produkListLocal.map(p => {
                     let qty = getQtyLapProduk(p.id);
                     return `
-                    <div class="flex justify-between items-center py-3 border-b border-gray-100 last:border-0 hover:bg-plight px-2 rounded transition-colors">
+                    <div class="flex justify-between items-center py-2.5 md:py-3 border-b border-gray-100 last:border-0 hover:bg-plight px-2 rounded transition-colors">
                         <span class="font-bold text-gray-800 text-sm md:text-base">${p.nama_produk}</span>
                         <div class="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
                             <button onclick="ubahQtyLapProduk(${p.id}, '${p.nama_produk}', -1)" class="w-8 h-8 rounded flex items-center justify-center hover:bg-gray-100 text-gray-600 active:scale-95"><i class="ph ph-minus font-bold"></i></button>
@@ -464,46 +459,46 @@
                 }).join('');
 
                 container.innerHTML = `
-                    <h3 class="text-2xl font-black text-pdark mb-8">Penjualan</h3>
-                    
-                    <div class="mb-6">
+                    <div class="mb-5">
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Tanggal Shift</label>
-                        <input type="date" id="lap-tanggal" value="${formPenjualan.tanggal}" onchange="formPenjualan.tanggal=this.value" class="w-full md:w-1/3 bg-plight rounded-xl p-3 text-sm font-bold text-pdark outline-none focus:ring-2 focus:ring-pbg">
+                        <input type="date" id="lap-tanggal" value="${formPenjualan.tanggal}" onchange="formPenjualan.tanggal=this.value" class="w-full md:w-1/3 bg-plight rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-pbg border border-transparent appearance-none">
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <!-- Kolom Kiri: Produk Terjual -->
-                        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col">
-                            <h4 class="font-bold text-pdark mb-4 text-sm uppercase tracking-wider">Produk Terjual</h4>
-                            <div class="flex-1 overflow-y-auto pr-2 space-y-1 max-h-[350px]">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0">
+                        <!-- Kiri: Produk -->
+                        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col min-h-[300px]">
+                            <h4 class="font-bold text-pdark mb-4 text-xs md:text-sm uppercase tracking-wider shrink-0">Produk Terjual</h4>
+                            <div class="flex-1 overflow-y-auto pr-2">
                                 ${productsHtml}
                             </div>
-                            <div class="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center bg-plight p-4 rounded-xl">
-                                <span class="font-bold text-gray-500">Total Cup</span>
-                                <span class="text-2xl font-black text-pdark">${totalCup} Cup</span>
+                            <div class="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center bg-plight p-3 rounded-xl shrink-0">
+                                <span class="font-bold text-gray-500 text-sm">Total Cup</span>
+                                <span class="text-xl font-black text-pdark">${totalCup} Cup</span>
                             </div>
                         </div>
 
-                        <!-- Kolom Kanan: Rincian Pembayaran -->
-                        <div class="bg-plight p-6 rounded-2xl border border-gray-200 flex flex-col">
-                            <h4 class="font-bold text-pdark mb-4 text-sm uppercase tracking-wider">Rincian Pembayaran</h4>
-                            <div class="space-y-4 mb-6 flex-1">
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-500 mb-1">CASH (Rp)</label>
-                                    <input type="number" value="${formPenjualan.cash || ''}" placeholder="0" oninput="formPenjualan.cash=this.value; hitungOmzetLap()" class="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-base font-bold text-pdark outline-none focus:border-pdark shadow-sm transition-colors">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-500 mb-1">QRIS (Rp)</label>
-                                    <input type="number" value="${formPenjualan.qris || ''}" placeholder="0" oninput="formPenjualan.qris=this.value; hitungOmzetLap()" class="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-base font-bold text-pdark outline-none focus:border-pdark shadow-sm transition-colors">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-500 mb-1">TRANSFER (Rp)</label>
-                                    <input type="number" value="${formPenjualan.transfer || ''}" placeholder="0" oninput="formPenjualan.transfer=this.value; hitungOmzetLap()" class="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-base font-bold text-pdark outline-none focus:border-pdark shadow-sm transition-colors">
+                        <!-- Kanan: Uang -->
+                        <div class="bg-plight p-5 md:p-6 rounded-2xl border border-gray-200 flex flex-col justify-between">
+                            <div>
+                                <h4 class="font-bold text-pdark mb-4 text-xs md:text-sm uppercase tracking-wider">Rincian Pembayaran</h4>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 mb-1">CASH (Rp)</label>
+                                        <input type="number" value="${formPenjualan.cash || ''}" placeholder="0" oninput="formPenjualan.cash=this.value; hitungOmzetLap()" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm font-bold text-pdark outline-none focus:border-pdark shadow-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 mb-1">QRIS (Rp)</label>
+                                        <input type="number" value="${formPenjualan.qris || ''}" placeholder="0" oninput="formPenjualan.qris=this.value; hitungOmzetLap()" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm font-bold text-pdark outline-none focus:border-pdark shadow-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 mb-1">TRANSFER (Rp)</label>
+                                        <input type="number" value="${formPenjualan.transfer || ''}" placeholder="0" oninput="formPenjualan.transfer=this.value; hitungOmzetLap()" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm font-bold text-pdark outline-none focus:border-pdark shadow-sm">
+                                    </div>
                                 </div>
                             </div>
-                            <div class="pt-4 border-t border-gray-300 flex justify-between items-end">
-                                <span class="font-bold text-gray-500 uppercase text-sm">TOTAL OMZET</span>
-                                <span class="text-3xl font-black text-pdark" id="lap-total-omzet">Rp ${totalOmzet.toLocaleString('id-ID')}</span>
+                            <div class="pt-4 border-t border-gray-300 flex justify-between items-end mt-4">
+                                <span class="font-bold text-gray-500 uppercase text-xs md:text-sm">TOTAL OMZET</span>
+                                <span class="text-2xl lg:text-3xl font-black text-pdark" id="lap-total-omzet">Rp ${totalOmzet.toLocaleString('id-ID')}</span>
                             </div>
                         </div>
                     </div>
@@ -512,14 +507,13 @@
             else if (wizardStep === 2) {
                 // STEP 2: STOCK KELUAR
                 container.innerHTML = `
-                    <h3 class="text-2xl font-black text-pdark mb-6">Stock Keluar (Terpakai & Lainnya)</h3>
                     <div class="overflow-x-auto bg-white border border-gray-200 rounded-2xl shadow-sm">
                         <table class="w-full text-left border-collapse min-w-[700px]">
                             <thead>
                                 <tr class="bg-gray-50 text-gray-500 font-bold text-xs uppercase tracking-wider border-b border-gray-200">
                                     <th class="p-4 pl-6">Bahan / Barang</th>
-                                    <th class="p-4 text-center">Terpakai (Jual)</th>
-                                    <th class="p-4 text-center">Tumpah/Lain</th>
+                                    <th class="p-4 text-center">Terpakai (Terjual)</th>
+                                    <th class="p-4 text-center">Tumpah/Lainnya</th>
                                     <th class="p-4 text-center bg-plight text-pdark">Total Keluar</th>
                                     <th class="p-4 pr-6 text-center">Satuan</th>
                                 </tr>
@@ -533,17 +527,17 @@
                                     <tr class="hover:bg-gray-50 transition-colors">
                                         <td class="p-4 pl-6 font-bold text-gray-700">${s.nama_bahan}</td>
                                         <td class="p-4">
-                                            <div class="flex items-center justify-center gap-2">
+                                            <div class="flex items-center justify-center gap-1.5">
                                                 <button onclick="ubahLapStock(${s.id}, 'terpakai', -1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-minus font-bold"></i></button>
-                                                <input type="number" value="${d.terpakai||0}" onchange="setLapStock(${s.id}, 'terpakai', this.value)" class="w-12 text-center font-bold text-gray-800 bg-transparent outline-none focus:border-pdark">
-                                                <button onclick="ubahLapStock(${s.id}, 'terpakai', 1)" class="w-8 h-8 rounded bg-pbg/30 text-pdark flex items-center justify-center hover:bg-pbg/60 active:scale-95 shadow-sm"><i class="ph ph-plus font-bold"></i></button>
+                                                <input type="number" value="${d.terpakai||0}" onchange="setLapStock(${s.id}, 'terpakai', this.value)" class="w-14 text-center font-bold text-gray-800 bg-transparent outline-none focus:border-pdark">
+                                                <button onclick="ubahLapStock(${s.id}, 'terpakai', 1)" class="w-8 h-8 rounded bg-plight border border-gray-200 text-pdark flex items-center justify-center hover:bg-gray-200 active:scale-95 shadow-sm"><i class="ph ph-plus font-bold"></i></button>
                                             </div>
                                         </td>
                                         <td class="p-4">
-                                            <div class="flex items-center justify-center gap-2">
+                                            <div class="flex items-center justify-center gap-1.5">
                                                 <button onclick="ubahLapStock(${s.id}, 'tumpah', -1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-minus font-bold"></i></button>
-                                                <input type="number" value="${d.tumpah||0}" onchange="setLapStock(${s.id}, 'tumpah', this.value)" class="w-12 text-center font-bold text-gray-800 bg-transparent outline-none focus:border-pdark">
-                                                <button onclick="ubahLapStock(${s.id}, 'tumpah', 1)" class="w-8 h-8 rounded bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 active:scale-95 shadow-sm"><i class="ph ph-plus font-bold"></i></button>
+                                                <input type="number" value="${d.tumpah||0}" onchange="setLapStock(${s.id}, 'tumpah', this.value)" class="w-14 text-center font-bold text-gray-800 bg-transparent outline-none focus:border-pdark">
+                                                <button onclick="ubahLapStock(${s.id}, 'tumpah', 1)" class="w-8 h-8 rounded bg-red-50 border border-red-100 text-red-600 flex items-center justify-center hover:bg-red-100 active:scale-95 shadow-sm"><i class="ph ph-plus font-bold"></i></button>
                                             </div>
                                         </td>
                                         <td class="p-4 bg-plight text-center font-black text-pdark" id="tot-keluar-${s.id}">${total}</td>
@@ -556,29 +550,28 @@
                 `;
             }
             else if (wizardStep === 3) {
-                // STEP 3: PENGELUARAN UI (Sesuai Gambar 2)
+                // STEP 3: PENGELUARAN
                 let totPengeluaran = formPengeluaran.reduce((sum, item) => sum + (item.harga * item.qty), 0);
                 
                 container.innerHTML = `
-                    <div class="flex justify-between items-center mb-8">
-                        <h3 class="text-2xl font-black text-pdark">Input Pengeluaran Operasional</h3>
+                    <div class="flex justify-end mb-6">
                         <div class="bg-red-50 text-red-600 px-5 py-2.5 rounded-xl font-black text-base shadow-sm" id="tot-pengeluaran-badge">Total Harga: Rp ${totPengeluaran.toLocaleString('id-ID')}</div>
                     </div>
                     
                     <!-- Quick Add Section -->
-                    <div class="mb-8 p-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
+                    <div class="mb-6 p-5 md:p-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
                         <p class="text-sm font-bold text-gray-800 mb-4">Quick Add</p>
                         <div class="flex flex-wrap gap-3">
-                            <button onclick="quickAddPengeluaran('UHT Full Cream (946ml)', 23000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">1. UHT Full Cream (946ml)</button>
-                            <button onclick="quickAddPengeluaran('Es Batu (10kg)', 10000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">2. Es Batu (10kg)</button>
-                            <button onclick="quickAddPengeluaran('Omela (370gr)', 12000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">3. Omela (370gr)</button>
-                            <button onclick="quickAddPengeluaran('Omela (490gr)', 15000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-plight hover:border-pbg transition-all active:scale-95 shadow-sm">4. Omela (490gr)</button>
+                            <button onclick="quickAddPengeluaran('UHT Full Cream (946ml)', 23000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-plight hover:border-pbg hover:text-pdark transition-all active:scale-95 shadow-sm">1. UHT Full Cream (946ml)</button>
+                            <button onclick="quickAddPengeluaran('Es Batu (10kg)', 10000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-plight hover:border-pbg hover:text-pdark transition-all active:scale-95 shadow-sm">2. Es Batu (10kg)</button>
+                            <button onclick="quickAddPengeluaran('Omela (370gr)', 12000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-plight hover:border-pbg hover:text-pdark transition-all active:scale-95 shadow-sm">3. Omela (370gr)</button>
+                            <button onclick="quickAddPengeluaran('Omela (490gr)', 15000)" class="px-5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-plight hover:border-pbg hover:text-pdark transition-all active:scale-95 shadow-sm">4. Omela (490gr)</button>
                         </div>
                     </div>
 
-                    <!-- List Pengeluaran Dinamis -->
+                    <!-- List Pengeluaran -->
                     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
-                        <div class="hidden md:flex justify-between gap-4 bg-gray-50 p-5 border-b border-gray-200 text-xs font-bold text-gray-800 uppercase">
+                        <div class="hidden md:flex justify-between gap-4 bg-gray-50 p-4 border-b border-gray-200 text-xs font-bold text-gray-800 uppercase">
                             <div class="flex-1">Item</div>
                             <div class="w-32 text-center">Qty</div>
                             <div class="w-32 text-center">Harga</div>
@@ -586,20 +579,21 @@
                             <div class="w-24 text-center">Aksi</div>
                         </div>
                         <div class="divide-y divide-gray-100" id="list-pengeluaran">
-                            ${formPengeluaran.length === 0 ? '<div class="text-center py-10 text-gray-400 text-sm font-medium">Belum ada item pengeluaran yang diinput. Gunakan Quick Add atau Tambah Item Lain.</div>' : 
+                            ${formPengeluaran.length === 0 ? '<div class="text-center py-10 text-gray-400 text-sm font-medium">Belum ada item pengeluaran. Gunakan Quick Add atau Tambah Item Lain.</div>' : 
                               formPengeluaran.map((ex) => `
-                              <div class="flex flex-col md:flex-row justify-between md:items-center p-5 hover:bg-gray-50 transition-colors gap-4">
+                              <div class="flex flex-col md:flex-row justify-between md:items-center p-4 hover:bg-gray-50 transition-colors gap-4">
                                   <div class="flex-1 font-bold text-gray-700 text-sm md:text-base">${ex.nama}</div>
                                   
                                   <div class="flex flex-wrap md:flex-nowrap items-center justify-between md:justify-end gap-4 w-full md:w-auto">
-                                      <div class="flex items-center gap-2">
-                                          <button onclick="ubahQtyPengeluaran(${ex.id}, -1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-minus font-bold"></i></button>
-                                          <span class="w-8 text-center font-black text-gray-800">${ex.qty}</span>
-                                          <button onclick="ubahQtyPengeluaran(${ex.id}, 1)" class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-200 text-gray-600 active:scale-95 shadow-sm"><i class="ph ph-plus font-bold"></i></button>
+                                      <!-- Qty Control -->
+                                      <div class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+                                          <button onclick="ubahQtyPengeluaran(${ex.id}, -1)" class="w-7 h-7 rounded flex items-center justify-center hover:bg-gray-100 text-gray-600 active:scale-95"><i class="ph ph-minus font-bold"></i></button>
+                                          <span class="w-6 text-center font-black text-gray-800">${ex.qty}</span>
+                                          <button onclick="ubahQtyPengeluaran(${ex.id}, 1)" class="w-7 h-7 rounded bg-plight text-pdark flex items-center justify-center hover:bg-gray-200 active:scale-95"><i class="ph ph-plus font-bold"></i></button>
                                       </div>
                                       
                                       <div class="w-full md:w-32">
-                                          <input type="number" value="${ex.harga}" oninput="ubahHargaPengeluaran(${ex.id}, this.value)" class="w-full border border-gray-200 rounded-lg p-2 text-center text-sm font-semibold outline-none focus:border-pdark shadow-sm">
+                                          <input type="number" value="${ex.harga}" oninput="ubahHargaPengeluaran(${ex.id}, this.value)" class="w-full border border-gray-200 rounded-lg p-2 text-center text-sm font-semibold outline-none focus:border-pdark shadow-sm bg-white">
                                       </div>
                                       
                                       <div class="w-full md:w-32 text-right font-black text-pdark text-base" id="tot-harga-${ex.id}">
@@ -607,36 +601,31 @@
                                       </div>
                                       
                                       <div class="flex gap-2 shrink-0">
-                                          <button onclick="editNamaPengeluaran(${ex.id})" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm" title="Edit Data"><i class="ph ph-pencil-simple text-lg"></i></button>
-                                          <button onclick="hapusPengeluaranItem(${ex.id})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors shadow-sm" title="Hapus Data"><i class="ph ph-trash text-lg"></i></button>
+                                          <button onclick="editNamaPengeluaran(${ex.id})" class="w-8 h-8 border border-gray-200 text-gray-500 rounded-lg flex items-center justify-center hover:bg-plight hover:text-pdark transition-colors shadow-sm bg-white text-xs">Edit</button>
+                                          <button onclick="hapusPengeluaranItem(${ex.id})" class="w-8 h-8 border border-red-200 text-red-500 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors shadow-sm bg-white text-xs">Del</button>
                                       </div>
                                   </div>
                               </div>`).join('')}
                         </div>
                     </div>
                     
-                    <button onclick="tambahCustomPengeluaran()" class="bg-white border-2 border-pdark text-pdark font-bold px-6 py-3 rounded-xl hover:bg-plight text-sm shadow-sm flex items-center gap-2 active:scale-95 transition-all"><i class="ph ph-plus font-bold"></i> Tambah Item Lain</button>
+                    <button onclick="tambahCustomPengeluaran()" class="bg-white border border-gray-300 text-pdark font-bold px-6 py-2.5 rounded-xl hover:bg-plight text-sm shadow-sm flex items-center gap-2 active:scale-95 transition-all"><i class="ph ph-plus font-bold"></i> Tambah Item Lain</button>
                 `;
             }
         }
 
-        // -- Logic Penjualan --
-        function getQtyLapProduk(id) {
-            let item = formPenjualan.rincian.find(x => x.id === id);
-            return item ? item.qty : 0;
-        }
-
+        // --- Logika Pendukung ---
+        function getQtyLapProduk(id) { let item = formPenjualan.rincian.find(x => x.id === id); return item ? item.qty : 0; }
+        
         function ubahQtyLapProduk(id, nama, delta) {
             let item = formPenjualan.rincian.find(x => x.id === id);
             if (item) {
                 item.qty += delta;
-                if (item.qty <= 0) {
-                    formPenjualan.rincian = formPenjualan.rincian.filter(x => x.id !== id);
-                }
+                if (item.qty <= 0) formPenjualan.rincian = formPenjualan.rincian.filter(x => x.id !== id);
             } else if (delta > 0) {
                 formPenjualan.rincian.push({ id, nama, qty: delta });
             }
-            renderWizardStep(); // Re-render untuk update total dan input
+            renderWizardContent(); 
         }
 
         function hitungOmzetLap() {
@@ -644,14 +633,13 @@
             document.getElementById('lap-total-omzet').textContent = 'Rp ' + tot.toLocaleString('id-ID');
         }
 
-        // -- Logic Stock Keluar --
         function ubahLapStock(id, field, delta) {
             if(!formStockKeluar[id]) formStockKeluar[id] = {terpakai:0, tumpah:0};
             let current = Number(formStockKeluar[id][field]) || 0;
             let newValue = current + delta;
             if(newValue < 0) newValue = 0;
             formStockKeluar[id][field] = newValue;
-            renderWizardStep();
+            renderWizardContent();
         }
         
         function setLapStock(id, field, val) {
@@ -659,64 +647,46 @@
             let newValue = Number(val) || 0;
             if(newValue < 0) newValue = 0;
             formStockKeluar[id][field] = newValue;
-            renderWizardStep();
+            renderWizardContent();
         }
 
-        // -- Logic Pengeluaran --
         function quickAddPengeluaran(nama, defaultHarga) {
             formPengeluaran.push({ id: Date.now() + Math.random(), nama: nama, qty: 1, harga: defaultHarga });
-            renderWizardStep();
+            renderWizardContent();
         }
+
         function tambahCustomPengeluaran() {
             let nama = prompt("Masukkan nama pengeluaran (Contoh: Sapu / Sabun):");
-            if (nama) {
-                formPengeluaran.push({ id: Date.now() + Math.random(), nama: nama, qty: 1, harga: 0 });
-                renderWizardStep();
-            }
+            if (nama) { formPengeluaran.push({ id: Date.now() + Math.random(), nama: nama, qty: 1, harga: 0 }); renderWizardContent(); }
         }
+
         function ubahQtyPengeluaran(id, delta) {
             let item = formPengeluaran.find(x => x.id === id);
-            if (item) {
-                item.qty += delta;
-                if (item.qty < 1) item.qty = 1;
-                renderWizardStep();
-            }
+            if (item) { item.qty += delta; if (item.qty < 1) item.qty = 1; renderWizardContent(); }
         }
+
         function ubahHargaPengeluaran(id, val) {
             let item = formPengeluaran.find(x => x.id === id);
             if (item) {
                 item.harga = Number(val) || 0;
-                // Update text di DOM langsung agar input box tidak kehilangan fokus saat mengetik
                 let tot = item.harga * item.qty;
                 let elDesk = document.getElementById('tot-harga-'+id);
-                let elMob = document.getElementById('tot-harga-mob-'+id);
                 if(elDesk) elDesk.textContent = 'Rp ' + tot.toLocaleString('id-ID');
-                if(elMob) elMob.textContent = 'Rp ' + tot.toLocaleString('id-ID');
-                
-                // Update grand total badge
                 let grandTot = formPengeluaran.reduce((sum, i) => sum + (i.harga * i.qty), 0);
                 document.getElementById('tot-pengeluaran-badge').textContent = 'Total Harga: Rp ' + grandTot.toLocaleString('id-ID');
             }
         }
-        function hapusPengeluaranItem(id) {
-            formPengeluaran = formPengeluaran.filter(x => x.id !== id);
-            renderWizardStep();
-        }
+
+        function hapusPengeluaranItem(id) { formPengeluaran = formPengeluaran.filter(x => x.id !== id); renderWizardContent(); }
+
         function editNamaPengeluaran(id) {
             let item = formPengeluaran.find(x => x.id === id);
-            if(item) {
-                let newNama = prompt("Edit nama pengeluaran:", item.nama);
-                if(newNama) { item.nama = newNama; renderWizardStep(); }
-            }
+            if(item) { let newNama = prompt("Edit nama pengeluaran:", item.nama); if(newNama) { item.nama = newNama; renderWizardContent(); } }
         }
 
         async function navWizard(dir) {
-            if (dir === 1 && wizardStep === 3) {
-                prosesSimpanLaporan();
-            } else {
-                wizardStep += dir;
-                renderLaporanShiftView(); 
-            }
+            if (dir === 1 && wizardStep === 3) prosesSimpanLaporan();
+            else { wizardStep += dir; renderLaporanShiftView(); }
         }
 
         async function prosesSimpanLaporan() {
@@ -727,20 +697,12 @@
             const totalOmzet = Number(formPenjualan.cash) + Number(formPenjualan.qris) + Number(formPenjualan.transfer);
             const totalCup = formPenjualan.rincian.reduce((sum, i) => sum + i.qty, 0);
 
-            // 1. Simpan Data ke tabel shift_reports
             const { error: err1 } = await db.from('shift_reports').insert([{
-                tanggal: formPenjualan.tanggal,
-                kasir_nama: currentUser.nama,
-                total_cup: totalCup,
-                omzet_cash: formPenjualan.cash,
-                omzet_qris: formPenjualan.qris,
-                omzet_transfer: formPenjualan.transfer,
-                total_omzet: totalOmzet,
-                detail_penjualan: formPenjualan.rincian,
-                detail_stock_keluar: formStockKeluar
+                tanggal: formPenjualan.tanggal, kasir_nama: currentUser.nama, total_cup: totalCup,
+                omzet_cash: formPenjualan.cash, omzet_qris: formPenjualan.qris, omzet_transfer: formPenjualan.transfer,
+                total_omzet: totalOmzet, detail_penjualan: formPenjualan.rincian, detail_stock_keluar: formStockKeluar
             }]);
 
-            // 2. Update Pengurangan Tabel Stocks
             for (const stock of stockListLocal) {
                 let d = formStockKeluar[stock.id];
                 if (d) {
@@ -752,27 +714,16 @@
                 }
             }
 
-            // 3. Simpan Pengeluaran ke tabel expenses
             if (formPengeluaran.length > 0) {
-                const expPayload = formPengeluaran.map(ex => ({
-                    tanggal: formPenjualan.tanggal,
-                    nama_barang: ex.nama,
-                    harga: ex.harga,
-                    qty: ex.qty,
-                    total: ex.harga * ex.qty
-                }));
+                const expPayload = formPengeluaran.map(ex => ({ tanggal: formPenjualan.tanggal, nama_barang: ex.nama, harga: ex.harga, qty: ex.qty, total: ex.harga * ex.qty }));
                 await db.from('expenses').insert(expPayload);
             }
 
-            if(err1) {
-                alert("Terjadi kesalahan: " + err1.message);
-                btn.innerHTML = 'SIMPAN LAPORAN'; btn.disabled = false;
-            } else {
-                alert("✅ LAPORAN SHIFT BERHASIL DISIMPAN!\nData penjualan, stok, dan pengeluaran telah diperbarui.");
-                // Reset State
+            if(err1) { alert("Terjadi kesalahan: " + err1.message); btn.innerHTML = 'SIMPAN LAPORAN'; btn.disabled = false; } 
+            else {
+                alert("✅ LAPORAN SHIFT BERHASIL DISIMPAN!");
                 formPenjualan = { tanggal: new Date().toISOString().split('T')[0], rincian: [], cash: '', qris: '', transfer: '' };
                 formStockKeluar = {}; formPengeluaran = [];
-                // Pindah ke Dashboard
                 loadPage('dashboard');
             }
         }
