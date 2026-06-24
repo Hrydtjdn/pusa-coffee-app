@@ -208,6 +208,9 @@
         };
         let formStockKeluar = {}; 
         let formPengeluaran = []; 
+        
+        let isEditLaporan = false;
+        let oldReportData = null;
 
         // Laporan Harian State
         let reportMonth = new Date().getMonth() + 1;
@@ -319,7 +322,18 @@
             
             if (pageId === 'master' && title === 'Master Produk') { renderMasterProdukView(); return; }
             if (pageId === 'stock' && title === 'Stock Masuk') { renderStockView(); return; }
-            if (pageId === 'laporan_shift' || title === 'Input Laporan Shift') { wizardStep = 1; renderLaporanShiftView(); return; }
+            if (pageId === 'laporan_shift' || title === 'Input Laporan Shift') { 
+                if (title !== 'Koreksi Laporan Shift') {
+                    isEditLaporan = false;
+                    oldReportData = null;
+                    formPenjualan = { tanggal: new Date().toISOString().split('T')[0], rincian: [], cash: '', qris: '', transfer: '' };
+                    formStockKeluar = {}; 
+                    formPengeluaran = [];
+                }
+                wizardStep = 1; 
+                renderLaporanShiftView(); 
+                return; 
+            }
             if (pageId === 'laporan' && title === 'Penjualan') { renderLaporanPenjualanView(); return; }
 
             const content = document.getElementById('main-content');
@@ -462,11 +476,11 @@
 
                 container.innerHTML = `
                     <div class="mb-5">
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Tanggal Shift</label>
-                        <input type="date" id="lap-tanggal" value="${formPenjualan.tanggal}" onchange="formPenjualan.tanggal=this.value" class="w-full md:w-1/3 bg-plight rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-pbg border border-transparent appearance-none">
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Tanggal Shift ${isEditLaporan ? '<span class="text-blue-500">(Mode Edit)</span>' : ''}</label>
+                        <input type="date" id="lap-tanggal" value="${formPenjualan.tanggal}" ${isEditLaporan ? 'disabled' : ''} onchange="formPenjualan.tanggal=this.value" class="w-full md:w-1/3 bg-plight rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-pbg border border-transparent appearance-none ${isEditLaporan ? 'opacity-60 cursor-not-allowed' : ''}">
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0">
                         <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col">
                             <h4 class="font-bold text-pdark mb-4 text-xs md:text-sm uppercase tracking-wider">Produk Terjual</h4>
                             <div class="pr-2 space-y-1">
@@ -697,34 +711,67 @@
             const totalOmzet = Number(formPenjualan.cash) + Number(formPenjualan.qris) + Number(formPenjualan.transfer);
             const totalCup = formPenjualan.rincian.reduce((sum, i) => sum + i.qty, 0);
 
-            const { error: err1 } = await db.from('shift_reports').insert([{
-                tanggal: formPenjualan.tanggal, kasir_nama: currentUser.nama, total_cup: totalCup,
-                omzet_cash: formPenjualan.cash, omzet_qris: formPenjualan.qris, omzet_transfer: formPenjualan.transfer,
-                total_omzet: totalOmzet, detail_penjualan: formPenjualan.rincian, detail_stock_keluar: formStockKeluar
-            }]);
+            try {
+                // 1. Kalkulasi dan Update Perbedaan Stok (Stock Delta) jika mode Edit
+                for (const stock of stockListLocal) {
+                    let oldKeluar = 0;
+                    if (isEditLaporan && oldReportData && oldReportData.detail_stock_keluar) {
+                        let oldD = oldReportData.detail_stock_keluar[stock.id];
+                        if(oldD) oldKeluar = Number(oldD.terpakai) + Number(oldD.tumpah);
+                    }
+                    
+                    let newKeluar = 0;
+                    if (formStockKeluar[stock.id]) {
+                        let newD = formStockKeluar[stock.id];
+                        newKeluar = Number(newD.terpakai) + Number(newD.tumpah);
+                    }
 
-            for (const stock of stockListLocal) {
-                let d = formStockKeluar[stock.id];
-                if (d) {
-                    let totalKeluar = Number(d.terpakai) + Number(d.tumpah);
-                    if (totalKeluar > 0) {
-                        let newQty = Number(stock.qty) - totalKeluar;
-                        await db.from('stocks').update({ qty: newQty }).eq('id', stock.id);
+                    let diff = newKeluar - oldKeluar; // positif = stok berkurang lagi, negatif = stok kembali
+                    
+                    if (diff !== 0) {
+                        let { data: currentStock } = await db.from('stocks').select('qty').eq('id', stock.id).single();
+                        if(currentStock) {
+                            let finalQty = Number(currentStock.qty) - diff;
+                            await db.from('stocks').update({ qty: finalQty }).eq('id', stock.id);
+                        }
                     }
                 }
-            }
 
-            if (formPengeluaran.length > 0) {
-                const expPayload = formPengeluaran.map(ex => ({ tanggal: formPenjualan.tanggal, nama_barang: ex.nama, harga: ex.harga, qty: ex.qty, total: ex.harga * ex.qty }));
-                await db.from('expenses').insert(expPayload);
-            }
+                // 2. Hapus data lama jika dalam mode Edit agar bersih saat di-replace
+                if (isEditLaporan) {
+                    await db.from('shift_reports').delete().eq('tanggal', formPenjualan.tanggal);
+                    await db.from('expenses').delete().eq('tanggal', formPenjualan.tanggal);
+                }
 
-            if(err1) { alert("Terjadi kesalahan: " + err1.message); btn.innerHTML = 'SIMPAN LAPORAN'; btn.disabled = false; } 
-            else {
-                alert("✅ LAPORAN SHIFT BERHASIL DISIMPAN!");
+                // 3. Insert Data Shift Report Baru/Update
+                const { error: err1 } = await db.from('shift_reports').insert([{
+                    tanggal: formPenjualan.tanggal, kasir_nama: currentUser.nama, total_cup: totalCup,
+                    omzet_cash: formPenjualan.cash, omzet_qris: formPenjualan.qris, omzet_transfer: formPenjualan.transfer,
+                    total_omzet: totalOmzet, detail_penjualan: formPenjualan.rincian, detail_stock_keluar: formStockKeluar
+                }]);
+                if (err1) throw err1;
+
+                // 4. Insert Data Pengeluaran Baru
+                if (formPengeluaran.length > 0) {
+                    const expPayload = formPengeluaran.map(ex => ({ tanggal: formPenjualan.tanggal, nama_barang: ex.nama, harga: ex.harga, qty: ex.qty, total: ex.harga * ex.qty }));
+                    const { error: err2 } = await db.from('expenses').insert(expPayload);
+                    if (err2) throw err2;
+                }
+
+                alert(isEditLaporan ? "✅ LAPORAN BERHASIL DIKOREKSI!" : "✅ LAPORAN SHIFT BERHASIL DISIMPAN!");
+                
+                let wasEdit = isEditLaporan;
+                isEditLaporan = false;
+                oldReportData = null;
                 formPenjualan = { tanggal: new Date().toISOString().split('T')[0], rincian: [], cash: '', qris: '', transfer: '' };
                 formStockKeluar = {}; formPengeluaran = [];
-                loadPage('dashboard');
+                
+                loadPage(wasEdit ? 'laporan' : 'dashboard', wasEdit ? 'Penjualan' : 'Dashboard');
+
+            } catch (err) {
+                alert("Terjadi kesalahan: " + err.message);
+                btn.innerHTML = 'SIMPAN LAPORAN';
+                btn.disabled = false;
             }
         }
 
@@ -799,11 +846,12 @@
                                         <th class="p-4 text-center">Penjualan (Cup)</th>
                                         <th class="p-4 text-right">Omzet</th>
                                         <th class="p-4 text-right">Pengeluaran</th>
-                                        <th class="p-4 pr-6 text-right">Laba Kotor</th>
+                                        <th class="p-4 text-right">Laba Kotor</th>
+                                        <th class="p-4 pr-6 text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="laporan-table-body" class="text-sm divide-y divide-gray-100">
-                                    <tr><td colspan="5" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data performa...</td></tr>
+                                    <tr><td colspan="6" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data performa...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -913,7 +961,10 @@
                         <td class="p-4 text-center font-bold">${data.cup > 0 ? data.cup : '-'}</td>
                         <td class="p-4 text-right font-medium">Rp ${data.omzet.toLocaleString('id-ID')}</td>
                         <td class="p-4 text-right font-medium">Rp ${data.pengeluaran.toLocaleString('id-ID')}</td>
-                        <td class="p-4 pr-6 text-right font-bold ${labaKotor > 0 ? 'text-pdark' : labaKotor < 0 ? 'text-red-500' : ''}">Rp ${labaKotor.toLocaleString('id-ID')}</td>
+                        <td class="p-4 text-right font-bold ${labaKotor > 0 ? 'text-pdark' : labaKotor < 0 ? 'text-red-500' : ''}">Rp ${labaKotor.toLocaleString('id-ID')}</td>
+                        <td class="p-4 pr-6 text-center">
+                            ${data.omzet > 0 || data.pengeluaran > 0 ? `<button onclick="editLaporanHarian('${dStr}', event)" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-100 transition-colors mx-auto shadow-sm active:scale-95" title="Koreksi Laporan"><i class="ph ph-pencil-simple text-lg"></i></button>` : `<span class="text-gray-300">-</span>`}
+                        </td>
                     </tr>`;
                 }
 
@@ -921,7 +972,48 @@
 
             } catch(e) {
                 console.error(e);
-                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500 font-bold">Terjadi kesalahan saat memuat data.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 font-bold">Terjadi kesalahan saat memuat data.</td></tr>`;
+            }
+        }
+
+        async function editLaporanHarian(tgl, event) {
+            const btn = event.currentTarget;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                // Tarik data laporan dan pengeluaran pada tanggal tersebut
+                const { data: rep } = await db.from('shift_reports').select('*').eq('tanggal', tgl).single();
+                const { data: exp } = await db.from('expenses').select('*').eq('tanggal', tgl);
+
+                if (rep) {
+                    formPenjualan = {
+                        tanggal: rep.tanggal, rincian: rep.detail_penjualan || [],
+                        cash: rep.omzet_cash || '', qris: rep.omzet_qris || '', transfer: rep.omzet_transfer || ''
+                    };
+                    formStockKeluar = rep.detail_stock_keluar || {};
+                } else {
+                    formPenjualan = { tanggal: tgl, rincian: [], cash: '', qris: '', transfer: '' };
+                    formStockKeluar = {};
+                }
+
+                if (exp && exp.length > 0) {
+                    formPengeluaran = exp.map(e => ({ id: e.id || (Date.now() + Math.random()), nama: e.nama_barang, qty: e.qty, harga: e.harga }));
+                } else {
+                    formPengeluaran = [];
+                }
+
+                isEditLaporan = true;
+                oldReportData = rep; 
+                
+                loadPage('laporan_shift', 'Koreksi Laporan Shift');
+                
+            } catch (err) {
+                alert("Gagal memuat data laporan untuk dikoreksi.");
+                console.error(err);
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
             }
         }
 
