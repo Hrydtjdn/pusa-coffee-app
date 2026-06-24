@@ -393,12 +393,12 @@
             if(produkListLocal.length === 0) { const {data} = await db.from('products').select('*').eq('status', 'Tersedia'); produkListLocal = data || []; }
             if(stockListLocal.length === 0) { const {data} = await db.from('stocks').select('*').order('nama_bahan',{ascending:true}); stockListLocal = data || []; }
 
-            // Container menggunakan flex-col setinggi layar sisa (100vh - 8rem header/padding)
+            // Menggunakan struktur dokumen biasa agar scroll alami berfungsi di semua ukuran layar
             content.innerHTML = `
-                <div class="max-w-7xl mx-auto h-[calc(100vh-6rem)] flex flex-col fade-in pb-4">
+                <div class="max-w-7xl mx-auto fade-in pb-16">
                     
                     <!-- NEW TABBED BAR (Horizontal Segment) -->
-                    <div class="flex rounded-xl border border-gray-300 overflow-hidden mb-6 shadow-sm bg-white shrink-0">
+                    <div class="flex rounded-xl border border-gray-300 overflow-hidden mb-6 shadow-sm bg-white">
                         <button onclick="setWizard(1)" class="flex-1 py-3 text-sm md:text-base font-bold flex items-center justify-center gap-2 transition-colors ${wizardStep===1?'bg-pdark text-white':'text-gray-600 hover:bg-gray-50'}">
                             <span class="${wizardStep===1?'':'text-pdark'}">1</span> Penjualan
                         </button>
@@ -413,14 +413,14 @@
                         </button>
                     </div>
 
-                    <!-- KARTU KONTEN UTAMA (Fleksibel, memakan sisa tinggi) -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 min-h-0">
+                    <!-- KARTU KONTEN UTAMA -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
                         
-                        <!-- Area Konten (Bisa di-scroll jika diperlukan, tanpa margin/padding berlebih) -->
-                        <div id="wizard-content" class="p-6 lg:p-8 flex-1 overflow-y-auto"></div>
+                        <!-- Area Konten Dinamis -->
+                        <div id="wizard-content" class="p-6 lg:p-8"></div>
 
-                        <!-- Area Navigasi Bawah (Menempel tetap di bawah kartu) -->
-                        <div class="flex justify-between items-center p-5 lg:p-6 bg-white border-t border-gray-100 shrink-0">
+                        <!-- Area Navigasi Bawah -->
+                        <div class="flex justify-between items-center p-5 lg:p-6 bg-white border-t border-gray-100">
                             <button onclick="navWizard(-1)" class="px-8 py-3 bg-white border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors shadow-sm ${wizardStep === 1 ? 'invisible' : ''}">Kembali</button>
                             <button onclick="navWizard(1)" id="btn-next-wizard" class="bg-pdark text-white px-10 py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all active:scale-95">${wizardStep === 3 ? 'SIMPAN LAPORAN' : 'Selanjutnya'}</button>
                         </div>
@@ -464,14 +464,15 @@
                         <input type="date" id="lap-tanggal" value="${formPenjualan.tanggal}" onchange="formPenjualan.tanggal=this.value" class="w-full md:w-1/3 bg-plight rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-pbg border border-transparent appearance-none">
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0">
+                    <!-- Layout Normal Tanpa Pembatasan Tinggi -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- Kiri: Produk -->
-                        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col min-h-[300px]">
-                            <h4 class="font-bold text-pdark mb-4 text-xs md:text-sm uppercase tracking-wider shrink-0">Produk Terjual</h4>
-                            <div class="flex-1 overflow-y-auto pr-2">
+                        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col">
+                            <h4 class="font-bold text-pdark mb-4 text-xs md:text-sm uppercase tracking-wider">Produk Terjual</h4>
+                            <div class="pr-2 space-y-1">
                                 ${productsHtml}
                             </div>
-                            <div class="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center bg-plight p-3 rounded-xl shrink-0">
+                            <div class="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center bg-plight p-3 rounded-xl">
                                 <span class="font-bold text-gray-500 text-sm">Total Cup</span>
                                 <span class="text-xl font-black text-pdark">${totalCup} Cup</span>
                             </div>
