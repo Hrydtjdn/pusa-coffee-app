@@ -214,6 +214,44 @@
         </div>
     </div>
 
+    <!-- Modal Keuangan Pengeluaran -->
+    <div id="modal-keuangan" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="modal-title-keuangan" class="text-lg font-black text-pdark uppercase flex items-center gap-2"><i class="ph ph-wallet"></i> Input Pengeluaran</h3>
+                <button onclick="tutupModalKeuangan()" class="w-8 h-8 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200"><i class="ph ph-x"></i></button>
+            </div>
+            <form id="form-keuangan" onsubmit="simpanKeuangan(event)">
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Tanggal</label>
+                        <input type="date" id="k-tanggal" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Kategori Pengeluaran</label>
+                        <select id="k-kategori" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark">
+                            <option value="Gaji Karyawan">Gaji Karyawan</option>
+                            <option value="Sewa Tempat">Sewa Tempat</option>
+                            <option value="Logistik & Transport">Logistik & Transport</option>
+                            <option value="Listrik, Air & Internet">Listrik, Air & Internet</option>
+                            <option value="Maintenance & Perbaikan">Maintenance & Perbaikan</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Keterangan / Rincian</label>
+                        <input type="text" id="k-keterangan" placeholder="Contoh: Gaji Kasir Bulan Juni, Bayar Galon..." class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total Biaya (Rp)</label>
+                        <input type="number" id="k-jumlah" placeholder="0" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark" required>
+                    </div>
+                </div>
+                <button type="submit" id="btn-simpan-keuangan" class="w-full bg-pdark text-white font-bold p-4 rounded-xl shadow-md hover:bg-opacity-95">SIMPAN PENGELUARAN</button>
+            </form>
+        </div>
+    </div>
+
     <!-- ============================================== -->
     <!-- LOGIKA JAVASCRIPT UTAMA -->
     <!-- ============================================== -->
@@ -359,6 +397,7 @@
             if (pageId === 'stock' && title === 'Riwayat Stock') { renderRiwayatStockView(); return; }
             if (pageId === 'laporan_shift' || title === 'Input Laporan Shift') { wizardStep = 1; renderLaporanShiftView(); return; }
             if (pageId === 'laporan' && title === 'Penjualan') { renderLaporanPenjualanView(); return; }
+            if (pageId === 'keuangan' && title === 'Input Pengeluaran') { renderKeuanganView(); return; }
 
             const content = document.getElementById('main-content');
             content.innerHTML = '<div class="flex justify-center mt-20"><i class="ph ph-spinner animate-spin text-4xl text-pdark"></i></div>';
@@ -1329,6 +1368,200 @@
             if(confirm("Apakah Anda yakin ingin menghapus catatan riwayat stok ini?\n(Catatan: Ini tidak akan mengurangi jumlah stok di menu Master Stok secara otomatis.)")) {
                 await db.from('stock_history').delete().eq('id', id);
                 fetchDataRiwayatStock();
+            }
+        }
+
+        // ==============================================
+        // KEUANGAN: PENGELUARAN NON-OPERASIONAL
+        // ==============================================
+        let editKeuanganId = null;
+
+        function renderKeuanganView() {
+            const content = document.getElementById('main-content');
+            const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            const currentYear = new Date().getFullYear();
+            
+            content.innerHTML = `
+                <div class="max-w-7xl mx-auto fade-in pb-16">
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-200 p-6 md:p-8">
+                        
+                        <!-- Header & Filters -->
+                        <div class="flex flex-col md:flex-row justify-between md:items-center gap-6 mb-8 border-b border-gray-100 pb-6">
+                            <div>
+                                <h2 class="text-2xl font-black text-gray-800">Pengeluaran Tetap / Non-Operasional</h2>
+                                <p class="text-sm font-medium text-gray-500 mt-1">Pencatatan Gaji, Sewa, Logistik, dan Biaya lainnya.</p>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <button onclick="bukaModalKeuangan()" class="bg-pdark text-white font-bold px-5 py-2.5 rounded-xl shadow hover:bg-opacity-90 flex items-center gap-2 text-sm mr-2"><i class="ph ph-plus-circle text-lg"></i> INPUT PENGELUARAN</button>
+                                
+                                <div class="bg-gray-100 w-px h-10 mx-2"></div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 mb-1">Bulan</label>
+                                    <select id="filter-keuangan-month" onchange="fetchDataKeuangan()" class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-pbg cursor-pointer min-w-[120px]">
+                                        ${months.map((m, i) => `<option value="${i+1}" ${reportMonth === i+1 ? 'selected' : ''}>${m}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 mb-1">Tahun</label>
+                                    <select id="filter-keuangan-year" onchange="fetchDataKeuangan()" class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-pbg cursor-pointer min-w-[100px]">
+                                        <option value="${currentYear-1}">${currentYear-1}</option>
+                                        <option value="${currentYear}" selected>${currentYear}</option>
+                                        <option value="${currentYear+1}">${currentYear+1}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ringkasan Angka -->
+                        <div class="bg-red-50 border border-red-100 rounded-2xl p-5 flex justify-between items-center mb-6">
+                            <span class="font-bold text-red-600 uppercase text-sm">Total Pengeluaran Bulan Ini</span>
+                            <span class="text-2xl font-black text-red-700" id="total-biaya-keuangan">Rp 0</span>
+                        </div>
+
+                        <!-- Data Table -->
+                        <div class="overflow-x-auto border border-gray-100 rounded-xl">
+                            <table class="w-full text-left border-collapse min-w-[700px]">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-600 font-bold text-xs uppercase tracking-wider border-b border-gray-200">
+                                        <th class="p-4 pl-6">Tanggal</th>
+                                        <th class="p-4">Kategori</th>
+                                        <th class="p-4">Keterangan</th>
+                                        <th class="p-4 text-right">Jumlah Biaya</th>
+                                        <th class="p-4 pr-6 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="keuangan-table-body" class="text-sm divide-y divide-gray-100">
+                                    <tr><td colspan="5" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+            `;
+
+            fetchDataKeuangan();
+        }
+
+        async function fetchDataKeuangan() {
+            if(!db) return;
+            const monthVal = document.getElementById('filter-keuangan-month').value;
+            const yearVal = document.getElementById('filter-keuangan-year').value;
+            const tbody = document.getElementById('keuangan-table-body');
+            
+            tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr>`;
+
+            const startDate = `${yearVal}-${String(monthVal).padStart(2, '0')}-01`;
+            const lastDay = new Date(yearVal, monthVal, 0).getDate();
+            const endDate = `${yearVal}-${String(monthVal).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+            try {
+                const { data, error } = await db.from('operational_expenses')
+                    .select('*')
+                    .gte('tanggal', startDate)
+                    .lte('tanggal', endDate)
+                    .order('tanggal', { ascending: false })
+                    .order('id', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-400 font-medium">Tidak ada data pengeluaran pada bulan ini.</td></tr>`;
+                    document.getElementById('total-biaya-keuangan').textContent = "Rp 0";
+                    return;
+                }
+
+                let total = 0;
+                let rows = data.map(item => {
+                    total += Number(item.jumlah);
+                    let dateObj = new Date(item.tanggal);
+                    let formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                    
+                    // Logic warna badge kategori
+                    let badgeColor = 'bg-gray-100 text-gray-600 border-gray-200';
+                    if(item.kategori === 'Gaji Karyawan') badgeColor = 'bg-blue-50 text-blue-600 border-blue-200';
+                    else if(item.kategori === 'Sewa Tempat') badgeColor = 'bg-purple-50 text-purple-600 border-purple-200';
+                    else if(item.kategori === 'Logistik & Transport') badgeColor = 'bg-orange-50 text-orange-600 border-orange-200';
+                    
+                    return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="p-4 pl-6 font-semibold text-gray-800">${formattedDate}</td>
+                        <td class="p-4"><span class="${badgeColor} font-bold text-xs px-2.5 py-1 rounded-md border">${item.kategori}</span></td>
+                        <td class="p-4 font-medium text-gray-600">${item.keterangan}</td>
+                        <td class="p-4 text-right font-black text-pdark">Rp ${Number(item.jumlah).toLocaleString('id-ID')}</td>
+                        <td class="p-4 pr-6 text-center flex justify-center gap-2">
+                            <button onclick="editKeuangan(${item.id})" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm active:scale-95" title="Edit Data"><i class="ph ph-pencil-simple text-lg"></i></button>
+                            <button onclick="hapusKeuangan(${item.id})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors shadow-sm active:scale-95" title="Hapus Data"><i class="ph ph-trash text-lg"></i></button>
+                        </td>
+                    </tr>`;
+                });
+                
+                tbody.innerHTML = rows.join('');
+                document.getElementById('total-biaya-keuangan').textContent = "Rp " + total.toLocaleString('id-ID');
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500 font-bold">Terjadi kesalahan. Pastikan tabel 'operational_expenses' sudah dibuat.</td></tr>`;
+            }
+        }
+
+        function bukaModalKeuangan() {
+            editKeuanganId = null;
+            document.getElementById('form-keuangan').reset();
+            document.getElementById('k-tanggal').value = new Date().toISOString().split('T')[0];
+            document.getElementById('modal-title-keuangan').innerHTML = '<i class="ph ph-wallet"></i> Input Pengeluaran';
+            document.getElementById('btn-simpan-keuangan').innerHTML = 'SIMPAN PENGELUARAN';
+            document.getElementById('modal-keuangan').classList.remove('hidden');
+        }
+
+        function tutupModalKeuangan() {
+            document.getElementById('modal-keuangan').classList.add('hidden');
+        }
+
+        async function simpanKeuangan(e) {
+            e.preventDefault();
+            if(!db) return;
+
+            const payload = {
+                tanggal: document.getElementById('k-tanggal').value,
+                kategori: document.getElementById('k-kategori').value,
+                keterangan: document.getElementById('k-keterangan').value,
+                jumlah: Number(document.getElementById('k-jumlah').value) || 0
+            };
+
+            if (editKeuanganId) {
+                await db.from('operational_expenses').update(payload).eq('id', editKeuanganId);
+            } else {
+                await db.from('operational_expenses').insert([payload]);
+            }
+
+            tutupModalKeuangan();
+            fetchDataKeuangan();
+        }
+
+        async function editKeuangan(id) {
+            if(!db) return;
+            const { data, error } = await db.from('operational_expenses').select('*').eq('id', id).single();
+            if(data) {
+                editKeuanganId = id;
+                document.getElementById('k-tanggal').value = data.tanggal;
+                document.getElementById('k-kategori').value = data.kategori;
+                document.getElementById('k-keterangan').value = data.keterangan;
+                document.getElementById('k-jumlah').value = data.jumlah;
+                
+                document.getElementById('modal-title-keuangan').innerHTML = '<i class="ph ph-pencil-simple text-blue-600"></i> Edit Pengeluaran';
+                document.getElementById('btn-simpan-keuangan').innerHTML = 'SIMPAN PERUBAHAN';
+                document.getElementById('modal-keuangan').classList.remove('hidden');
+            }
+        }
+
+        async function hapusKeuangan(id) {
+            if(!db) return;
+            if(confirm("Apakah Anda yakin ingin menghapus data pengeluaran ini?")) {
+                await db.from('operational_expenses').delete().eq('id', id);
+                fetchDataKeuangan();
             }
         }
 
