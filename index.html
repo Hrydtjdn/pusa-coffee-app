@@ -37,6 +37,11 @@
         
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Menghilangkan panah atas-bawah pada input angka (type="number") */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
     </style>
 </head>
 <body class="bg-pbg text-gray-800 font-sans antialiased overflow-hidden">
@@ -177,6 +182,34 @@
                     </div>
                 </div>
                 <button type="submit" id="btn-simpan-stock" class="w-full bg-pdark text-white font-bold p-4 rounded-xl shadow-md hover:bg-opacity-95">SIMPAN STOK</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Riwayat Stock -->
+    <div id="modal-riwayat-stock" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-black text-pdark uppercase flex items-center gap-2"><i class="ph ph-pencil-simple"></i> Edit Riwayat</h3>
+                <button onclick="tutupModalRiwayatStock()" class="w-8 h-8 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200"><i class="ph ph-x"></i></button>
+            </div>
+            <form id="form-riwayat-stock" onsubmit="simpanEditRiwayatStock(event)">
+                <div class="space-y-4 mb-6">
+                    <div><label class="block text-xs font-bold text-gray-400 uppercase mb-2">Tanggal Masuk</label><input type="date" id="rs-tanggal" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark" required></div>
+                    <div><label class="block text-xs font-bold text-gray-400 uppercase mb-2">Nama Bahan</label><input type="text" id="rs-nama" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark" required></div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Kategori Bahan</label>
+                        <select id="rs-kategori" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark"><option value="Bahan Utama">Bahan Utama</option><option value="Susu & Sirup">Susu & Sirup</option><option value="Packaging">Packaging</option><option value="Lainnya">Lainnya</option></select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-2">Jumlah (Qty)</label><input type="number" step="0.01" id="rs-qty" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark" required></div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Satuan</label>
+                            <select id="rs-satuan" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark"><option value="Gram">Gram</option><option value="Ml">Ml</option><option value="Pcs">Pcs</option><option value="Pack">Pack</option></select>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-pdark text-white font-bold p-4 rounded-xl shadow-md hover:bg-opacity-95">SIMPAN PERUBAHAN</button>
             </form>
         </div>
     </div>
@@ -469,7 +502,7 @@
                         <span class="font-bold text-gray-800 text-sm md:text-base">${p.nama_produk}</span>
                         <div class="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
                             <button onclick="ubahQtyLapProduk(${p.id}, '${p.nama_produk}', -1)" class="w-8 h-8 rounded flex items-center justify-center hover:bg-gray-100 text-gray-600 active:scale-95"><i class="ph ph-minus font-bold"></i></button>
-                            <input type="text" readonly value="${qty}" class="w-10 text-center font-bold text-gray-800 bg-transparent outline-none">
+                            <input type="number" value="${qty}" onchange="setQtyLapProduk(${p.id}, '${p.nama_produk}', this.value)" class="w-12 text-center font-bold text-gray-800 bg-transparent outline-none focus:border-pdark">
                             <button onclick="ubahQtyLapProduk(${p.id}, '${p.nama_produk}', 1)" class="w-8 h-8 rounded bg-pdark text-white flex items-center justify-center hover:bg-opacity-90 active:scale-95"><i class="ph ph-plus font-bold"></i></button>
                         </div>
                     </div>`;
@@ -641,6 +674,20 @@
                 formPenjualan.rincian.push({ id, nama, qty: delta });
             }
             renderWizardContent(); 
+        }
+
+        function setQtyLapProduk(id, nama, val) {
+            let parsedVal = parseInt(val) || 0;
+            if (parsedVal < 0) parsedVal = 0;
+            let item = formPenjualan.rincian.find(x => x.id === id);
+            
+            if (item) {
+                item.qty = parsedVal;
+                if (item.qty <= 0) formPenjualan.rincian = formPenjualan.rincian.filter(x => x.id !== id);
+            } else if (parsedVal > 0) {
+                formPenjualan.rincian.push({ id, nama, qty: parsedVal });
+            }
+            renderWizardContent();
         }
 
         function hitungOmzetLap() {
@@ -1175,7 +1222,8 @@
                                         <th class="p-4">Nama Bahan</th>
                                         <th class="p-4">Kategori</th>
                                         <th class="p-4 text-center">Qty Masuk</th>
-                                        <th class="p-4 text-center pr-6">Satuan</th>
+                                        <th class="p-4 text-center">Satuan</th>
+                                        <th class="p-4 pr-6 text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="riwayat-stock-body" class="text-sm divide-y divide-gray-100">
@@ -1225,14 +1273,62 @@
                         <td class="p-4 font-bold text-gray-700">${item.nama_bahan}</td>
                         <td class="p-4"><span class="bg-gray-100 text-gray-600 font-bold text-xs px-2.5 py-1 rounded-md border border-gray-200">${item.kategori}</span></td>
                         <td class="p-4 text-center font-black text-pdark">+ ${item.qty}</td>
-                        <td class="p-4 text-center font-bold text-gray-400 uppercase text-xs pr-6">${item.satuan}</td>
+                        <td class="p-4 text-center font-bold text-gray-400 uppercase text-xs">${item.satuan}</td>
+                        <td class="p-4 pr-6 text-center flex justify-center gap-2">
+                            <button onclick="editRiwayatStock(${item.id})" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-100 transition-colors mx-auto shadow-sm active:scale-95" title="Edit Data"><i class="ph ph-pencil-simple text-lg"></i></button>
+                            <button onclick="hapusRiwayatStock(${item.id})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors mx-auto shadow-sm active:scale-95" title="Hapus Data"><i class="ph ph-trash text-lg"></i></button>
+                        </td>
                     </tr>`;
                 });
                 tbody.innerHTML = rows.join('');
 
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500 font-bold">Terjadi kesalahan. Pastikan tabel 'stock_history' sudah dibuat.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 font-bold">Terjadi kesalahan. Pastikan tabel 'stock_history' sudah dibuat.</td></tr>`;
+            }
+        }
+
+        let editRiwayatStockId = null;
+
+        async function editRiwayatStock(id) {
+            if(!db) return;
+            const { data, error } = await db.from('stock_history').select('*').eq('id', id).single();
+            if(data) {
+                editRiwayatStockId = id;
+                document.getElementById('rs-tanggal').value = data.tanggal;
+                document.getElementById('rs-nama').value = data.nama_bahan;
+                document.getElementById('rs-kategori').value = data.kategori;
+                document.getElementById('rs-qty').value = data.qty;
+                document.getElementById('rs-satuan').value = data.satuan;
+                document.getElementById('modal-riwayat-stock').classList.remove('hidden');
+            }
+        }
+
+        function tutupModalRiwayatStock() {
+            document.getElementById('modal-riwayat-stock').classList.add('hidden');
+        }
+
+        async function simpanEditRiwayatStock(e) {
+            e.preventDefault();
+            if(!db) return;
+            
+            await db.from('stock_history').update({
+                tanggal: document.getElementById('rs-tanggal').value,
+                nama_bahan: document.getElementById('rs-nama').value,
+                kategori: document.getElementById('rs-kategori').value,
+                qty: parseFloat(document.getElementById('rs-qty').value) || 0,
+                satuan: document.getElementById('rs-satuan').value
+            }).eq('id', editRiwayatStockId);
+            
+            tutupModalRiwayatStock();
+            fetchDataRiwayatStock();
+        }
+
+        async function hapusRiwayatStock(id) {
+            if(!db) return;
+            if(confirm("Apakah Anda yakin ingin menghapus catatan riwayat stok ini?\n(Catatan: Ini tidak akan mengurangi jumlah stok di menu Master Stok secara otomatis.)")) {
+                await db.from('stock_history').delete().eq('id', id);
+                fetchDataRiwayatStock();
             }
         }
 
