@@ -162,6 +162,7 @@
             </div>
             <form id="form-stock" onsubmit="simpanStockBaru(event)">
                 <div class="space-y-4 mb-6">
+                    <div><label class="block text-xs font-bold text-gray-400 uppercase mb-2">Tanggal Masuk</label><input type="date" id="s-tanggal" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark" required></div>
                     <div><label class="block text-xs font-bold text-gray-400 uppercase mb-2">Nama Bahan</label><input type="text" id="s-nama" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark" required></div>
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Kategori Bahan</label>
@@ -322,18 +323,8 @@
             
             if (pageId === 'master' && title === 'Master Produk') { renderMasterProdukView(); return; }
             if (pageId === 'stock' && title === 'Stock Masuk') { renderStockView(); return; }
-            if (pageId === 'laporan_shift' || title === 'Input Laporan Shift') { 
-                if (title !== 'Koreksi Laporan Shift') {
-                    isEditLaporan = false;
-                    oldReportData = null;
-                    formPenjualan = { tanggal: new Date().toISOString().split('T')[0], rincian: [], cash: '', qris: '', transfer: '' };
-                    formStockKeluar = {}; 
-                    formPengeluaran = [];
-                }
-                wizardStep = 1; 
-                renderLaporanShiftView(); 
-                return; 
-            }
+            if (pageId === 'stock' && title === 'Riwayat Stock') { renderRiwayatStockView(); return; }
+            if (pageId === 'laporan_shift' || title === 'Input Laporan Shift') { wizardStep = 1; renderLaporanShiftView(); return; }
             if (pageId === 'laporan' && title === 'Penjualan') { renderLaporanPenjualanView(); return; }
 
             const content = document.getElementById('main-content');
@@ -1104,6 +1095,7 @@
         function siapkanEditStock(id) {
             const s = stockListLocal.find(x => x.id === id);
             if (!s) return; editStockId = id; 
+            document.getElementById('s-tanggal').value = new Date().toISOString().split('T')[0];
             document.getElementById('s-nama').value = s.nama_bahan; document.getElementById('s-kategori').value = s.kategori; document.getElementById('s-qty').value = s.qty; document.getElementById('s-satuan').value = s.satuan;
             document.getElementById('modal-title-stock').innerHTML = '<i class="ph ph-pencil-simple text-blue-600"></i> Edit Stok'; document.getElementById('btn-simpan-stock').innerHTML = 'SIMPAN PERUBAHAN';
             document.getElementById('modal-stock').classList.remove('hidden');
@@ -1111,6 +1103,7 @@
 
         function bukaModalStock() {
             editStockId = null; document.getElementById('form-stock').reset();
+            document.getElementById('s-tanggal').value = new Date().toISOString().split('T')[0];
             document.getElementById('modal-title-stock').innerHTML = '<i class="ph ph-package"></i> Input Stok Baru'; document.getElementById('btn-simpan-stock').innerHTML = 'SIMPAN STOK';
             document.getElementById('modal-stock').classList.remove('hidden');
         }
@@ -1119,12 +1112,129 @@
 
         async function simpanStockBaru(e) {
             e.preventDefault();
-            const payload = { nama_bahan: document.getElementById('s-nama').value, kategori: document.getElementById('s-kategori').value, qty: parseFloat(document.getElementById('s-qty').value)||0, satuan: document.getElementById('s-satuan').value };
-            if (editStockId) await db.from('stocks').update(payload).eq('id', editStockId); else await db.from('stocks').insert([payload]);
+            const tgl = document.getElementById('s-tanggal').value;
+            const nama = document.getElementById('s-nama').value;
+            const kat = document.getElementById('s-kategori').value;
+            const qty = parseFloat(document.getElementById('s-qty').value)||0;
+            const sat = document.getElementById('s-satuan').value;
+            
+            const payload = { nama_bahan: nama, kategori: kat, qty: qty, satuan: sat };
+            
+            if (editStockId) {
+                await db.from('stocks').update(payload).eq('id', editStockId);
+            } else {
+                await db.from('stocks').insert([payload]);
+            }
+            
+            // Catat Riwayat
+            await db.from('stock_history').insert([{ 
+                tanggal: tgl, nama_bahan: nama, kategori: kat, qty: qty, satuan: sat, keterangan: editStockId ? 'Update Master' : 'Stock Masuk Baru' 
+            }]);
+
             tutupModalStock(); renderStockView(); 
         }
 
         async function hapusStock(id) { if(confirm("Hapus data stok ini?")) { await db.from('stocks').delete().eq('id', id); renderStockView(); } }
+
+        async function renderRiwayatStockView() {
+            const content = document.getElementById('main-content');
+            const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            const currentYear = new Date().getFullYear();
+            
+            content.innerHTML = `
+                <div class="max-w-7xl mx-auto fade-in pb-16">
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-200 p-6 md:p-8">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center gap-6 mb-8 border-b border-gray-100 pb-6">
+                            <div>
+                                <h2 class="text-2xl font-black text-gray-800">Riwayat Stock Masuk</h2>
+                                <p class="text-sm font-medium text-gray-500 mt-1">Laporan historis penambahan bahan baku</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 mb-1">Bulan</label>
+                                    <select id="filter-stock-month" onchange="fetchDataRiwayatStock()" class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-pbg cursor-pointer min-w-[120px]">
+                                        ${months.map((m, i) => `<option value="${i+1}" ${reportMonth === i+1 ? 'selected' : ''}>${m}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 mb-1">Tahun</label>
+                                    <select id="filter-stock-year" onchange="fetchDataRiwayatStock()" class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-pbg cursor-pointer min-w-[100px]">
+                                        <option value="${currentYear-1}">${currentYear-1}</option>
+                                        <option value="${currentYear}" selected>${currentYear}</option>
+                                        <option value="${currentYear+1}">${currentYear+1}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto border border-gray-100 rounded-xl">
+                            <table class="w-full text-left border-collapse min-w-[700px]">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-600 font-bold text-xs border-b border-gray-200 uppercase tracking-wider">
+                                        <th class="p-4 pl-6">Tanggal</th>
+                                        <th class="p-4">Nama Bahan</th>
+                                        <th class="p-4">Kategori</th>
+                                        <th class="p-4 text-center">Qty Masuk</th>
+                                        <th class="p-4 text-center pr-6">Satuan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="riwayat-stock-body" class="text-sm divide-y divide-gray-100">
+                                    <tr><td colspan="5" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            fetchDataRiwayatStock();
+        }
+
+        async function fetchDataRiwayatStock() {
+            if(!db) return;
+            const monthVal = document.getElementById('filter-stock-month').value;
+            const yearVal = document.getElementById('filter-stock-year').value;
+            const tbody = document.getElementById('riwayat-stock-body');
+            
+            tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr>`;
+
+            const startDate = `${yearVal}-${String(monthVal).padStart(2, '0')}-01`;
+            const lastDay = new Date(yearVal, monthVal, 0).getDate();
+            const endDate = `${yearVal}-${String(monthVal).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+            try {
+                const { data, error } = await db.from('stock_history')
+                    .select('*')
+                    .gte('tanggal', startDate)
+                    .lte('tanggal', endDate)
+                    .order('tanggal', { ascending: false })
+                    .order('id', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-400 font-medium">Tidak ada riwayat stok masuk pada bulan ini.</td></tr>`;
+                    return;
+                }
+
+                let rows = data.map(item => {
+                    let dateObj = new Date(item.tanggal);
+                    let formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                    return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="p-4 pl-6 font-semibold text-gray-800">${formattedDate}</td>
+                        <td class="p-4 font-bold text-gray-700">${item.nama_bahan}</td>
+                        <td class="p-4"><span class="bg-gray-100 text-gray-600 font-bold text-xs px-2.5 py-1 rounded-md border border-gray-200">${item.kategori}</span></td>
+                        <td class="p-4 text-center font-black text-pdark">+ ${item.qty}</td>
+                        <td class="p-4 text-center font-bold text-gray-400 uppercase text-xs pr-6">${item.satuan}</td>
+                    </tr>`;
+                });
+                tbody.innerHTML = rows.join('');
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500 font-bold">Terjadi kesalahan. Pastikan tabel 'stock_history' sudah dibuat.</td></tr>`;
+            }
+        }
 
         function renderDefaultView(title) { document.getElementById('main-content').innerHTML = `<div class="bg-white p-12 rounded-3xl text-center mt-10 fade-in border border-gray-50"><div class="w-20 h-20 bg-plight rounded-3xl flex items-center justify-center text-pdark mx-auto mb-6"><i class="ph ph-hammer text-4xl"></i></div><h3 class="text-2xl font-bold text-pdark mb-2">Modul ${title}</h3><p class="text-gray-500">Antarmuka ini siap dihubungkan ke operasi tabel PostgreSQL.</p></div>`; }
     </script>
