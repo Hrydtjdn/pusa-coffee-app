@@ -180,10 +180,6 @@
                             <select id="s-satuan" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark"><option value="Gram">Gram</option><option value="Ml">Ml</option><option value="Pcs">Pcs</option><option value="Pack">Pack</option></select>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total Harga Beli (Rp)</label>
-                        <input type="number" id="s-harga" placeholder="0" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark">
-                    </div>
                 </div>
                 <button type="submit" id="btn-simpan-stock" class="w-full bg-pdark text-white font-bold p-4 rounded-xl shadow-md hover:bg-opacity-95">SIMPAN STOK</button>
             </form>
@@ -211,10 +207,6 @@
                             <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Satuan</label>
                             <select id="rs-satuan" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark"><option value="Gram">Gram</option><option value="Ml">Ml</option><option value="Pcs">Pcs</option><option value="Pack">Pack</option></select>
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Total Harga Beli (Rp)</label>
-                        <input type="number" id="rs-harga" placeholder="0" class="w-full bg-plight rounded-xl p-3 text-sm font-semibold text-pdark outline-none focus:ring-2 focus:ring-pdark">
                     </div>
                 </div>
                 <button type="submit" class="w-full bg-pdark text-white font-bold p-4 rounded-xl shadow-md hover:bg-opacity-95">SIMPAN PERUBAHAN</button>
@@ -428,14 +420,10 @@
                     totalCup = reports.reduce((sum, r) => sum + Number(r.total_cup), 0);
                 }
 
-                // Kalkulasi Semua Pengeluaran
                 const { data: expenses } = await db.from('expenses').select('total');
-                const { data: opExpenses } = await db.from('operational_expenses').select('jumlah');
-                const { data: stockHistory } = await db.from('stock_history').select('total_harga');
-
-                if (expenses) totalPengeluaran += expenses.reduce((sum, e) => sum + Number(e.total), 0);
-                if (opExpenses) totalPengeluaran += opExpenses.reduce((sum, e) => sum + Number(e.jumlah), 0);
-                if (stockHistory) totalPengeluaran += stockHistory.reduce((sum, h) => sum + Number(h.total_harga || 0), 0);
+                if (expenses) {
+                    totalPengeluaran = expenses.reduce((sum, e) => sum + Number(e.total), 0);
+                }
 
                 labaBersih = totalOmzet - totalPengeluaran;
 
@@ -1175,10 +1163,66 @@
 
         async function hapusProduk(id) { if(confirm("Hapus permanen menu ini?")) { await db.from('products').delete().eq('id', id); renderMasterProdukView(); } }
 
-        // ==============================================
-        // MODUL STOCK MASUK (Terintegrasi dengan Riwayat, Filter & Pencarian)
-        // ==============================================
         function renderStockView() {
+            document.getElementById('main-content').innerHTML = `<div class="flex justify-between items-center mb-6 fade-in"><p class="text-sm text-gray-500 font-semibold">Manajemen stok bahan baku PUSA COFFEE.</p><button onclick="bukaModalStock()" class="bg-pdark text-white font-bold px-5 py-3 rounded-xl shadow hover:bg-opacity-90 flex items-center gap-2 text-sm"><i class="ph ph-plus-circle text-lg"></i> INPUT STOK BARU</button></div><div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden fade-in"><table class="w-full text-left border-collapse"><thead><tr class="bg-plight text-pdark font-black text-xs uppercase tracking-wider border-b border-gray-100"><th class="p-4 pl-6">Nama Bahan</th><th class="p-4">Kategori</th><th class="p-4 text-center">Qty</th><th class="p-4 text-center">Satuan</th><th class="p-4 pr-6 text-center">Aksi</th></tr></thead><tbody id="table-body-stock" class="text-sm divide-y divide-gray-50"><tr><td colspan="5" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr></tbody></table></div>`;
+            ambilDataStock();
+        }
+
+        async function ambilDataStock() {
+            const tbody = document.getElementById('table-body-stock');
+            if(!db) return;
+            const { data, error } = await db.from('stocks').select('*').order('nama_bahan', { ascending: true });
+            if (error) { tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500 font-bold">Gagal memuat</td></tr>`; return; }
+            stockListLocal = data || []; 
+            if (stockListLocal.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-400">Stok masih kosong.</td></tr>`; return; }
+            tbody.innerHTML = stockListLocal.map(item => `<tr class="hover:bg-gray-50"><td class="p-4 pl-6 font-bold text-gray-800">${item.nama_bahan}</td><td class="p-4"><span class="bg-plight text-gray-600 font-bold text-xs px-2.5 py-1 rounded-md border border-gray-200">${item.kategori}</span></td><td class="p-4 text-center"><span class="font-black ${item.qty < 50 ? 'text-red-600 bg-red-50' : 'text-gray-800 bg-gray-50'} px-3 py-1 rounded-lg">${item.qty}</span></td><td class="p-4 text-center font-semibold text-gray-500 uppercase text-xs">${item.satuan}</td><td class="p-4 pr-6 text-center flex justify-center gap-2"><button onclick="siapkanEditStock(${item.id})" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center justify-center"><i class="ph ph-pencil-simple"></i></button><button onclick="hapusStock(${item.id})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center justify-center"><i class="ph ph-trash"></i></button></td></tr>`).join('');
+        }
+
+        function siapkanEditStock(id) {
+            const s = stockListLocal.find(x => x.id === id);
+            if (!s) return; editStockId = id; 
+            document.getElementById('s-tanggal').value = new Date().toISOString().split('T')[0];
+            document.getElementById('s-nama').value = s.nama_bahan; document.getElementById('s-kategori').value = s.kategori; document.getElementById('s-qty').value = s.qty; document.getElementById('s-satuan').value = s.satuan;
+            document.getElementById('modal-title-stock').innerHTML = '<i class="ph ph-pencil-simple text-blue-600"></i> Edit Stok'; document.getElementById('btn-simpan-stock').innerHTML = 'SIMPAN PERUBAHAN';
+            document.getElementById('modal-stock').classList.remove('hidden');
+        }
+
+        function bukaModalStock() {
+            editStockId = null; document.getElementById('form-stock').reset();
+            document.getElementById('s-tanggal').value = new Date().toISOString().split('T')[0];
+            document.getElementById('modal-title-stock').innerHTML = '<i class="ph ph-package"></i> Input Stok Baru'; document.getElementById('btn-simpan-stock').innerHTML = 'SIMPAN STOK';
+            document.getElementById('modal-stock').classList.remove('hidden');
+        }
+
+        function tutupModalStock() { document.getElementById('modal-stock').classList.add('hidden'); }
+
+        async function simpanStockBaru(e) {
+            e.preventDefault();
+            const tgl = document.getElementById('s-tanggal').value;
+            const nama = document.getElementById('s-nama').value;
+            const kat = document.getElementById('s-kategori').value;
+            const qty = parseFloat(document.getElementById('s-qty').value)||0;
+            const sat = document.getElementById('s-satuan').value;
+            
+            const payload = { nama_bahan: nama, kategori: kat, qty: qty, satuan: sat };
+            
+            if (editStockId) {
+                await db.from('stocks').update(payload).eq('id', editStockId);
+            } else {
+                await db.from('stocks').insert([payload]);
+            }
+            
+            // Catat Riwayat
+            await db.from('stock_history').insert([{ 
+                tanggal: tgl, nama_bahan: nama, kategori: kat, qty: qty, satuan: sat, keterangan: editStockId ? 'Update Master' : 'Stock Masuk Baru' 
+            }]);
+
+            tutupModalStock(); renderStockView(); 
+        }
+
+        async function hapusStock(id) { if(confirm("Hapus data stok ini?")) { await db.from('stocks').delete().eq('id', id); renderStockView(); } }
+
+        async function renderRiwayatStockView() {
             const content = document.getElementById('main-content');
             const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
             const currentYear = new Date().getFullYear();
@@ -1186,30 +1230,21 @@
             content.innerHTML = `
                 <div class="max-w-7xl mx-auto fade-in pb-16">
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-200 p-6 md:p-8">
-                        
-                        <!-- Header & Filters -->
-                        <div class="flex flex-col lg:flex-row justify-between lg:items-center gap-6 mb-8 border-b border-gray-100 pb-6">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center gap-6 mb-8 border-b border-gray-100 pb-6">
                             <div>
-                                <h2 class="text-2xl font-black text-gray-800">Stock Masuk</h2>
-                                <p class="text-sm font-medium text-gray-500 mt-1">Pencatatan dan buku log penambahan bahan baku</p>
+                                <h2 class="text-2xl font-black text-gray-800">Riwayat Stock Masuk</h2>
+                                <p class="text-sm font-medium text-gray-500 mt-1">Laporan historis penambahan bahan baku</p>
                             </div>
-                            
-                            <div class="flex flex-wrap items-center gap-3">
-                                <button onclick="bukaModalStock()" class="bg-pdark text-white font-bold px-5 py-2.5 rounded-xl shadow hover:bg-opacity-90 flex items-center gap-2 text-sm mr-2"><i class="ph ph-plus-circle text-lg"></i> INPUT STOK BARU</button>
-                                
-                                <div class="bg-gray-100 w-px h-10 mx-2 hidden lg:block"></div>
-                                
-                                <!-- Search Bar -->
-                                <div class="relative w-full md:w-56">
-                                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"></i>
-                                    <input type="text" id="filter-stock-search" onkeyup="ambilDataStock()" placeholder="Cari nama bahan..." class="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-pdark focus:ring-1 focus:ring-pdark transition-all">
-                                </div>
-                                
-                                <div class="flex gap-2 w-full md:w-auto">
-                                    <select id="filter-stock-month" onchange="ambilDataStock()" class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-pbg cursor-pointer w-full md:w-auto">
+                            <div class="flex items-center gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 mb-1">Bulan</label>
+                                    <select id="filter-stock-month" onchange="fetchDataRiwayatStock()" class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-pbg cursor-pointer min-w-[120px]">
                                         ${months.map((m, i) => `<option value="${i+1}" ${reportMonth === i+1 ? 'selected' : ''}>${m}</option>`).join('')}
                                     </select>
-                                    <select id="filter-stock-year" onchange="ambilDataStock()" class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-pbg cursor-pointer w-full md:w-auto">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 mb-1">Tahun</label>
+                                    <select id="filter-stock-year" onchange="fetchDataRiwayatStock()" class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-pbg cursor-pointer min-w-[100px]">
                                         <option value="${currentYear-1}">${currentYear-1}</option>
                                         <option value="${currentYear}" selected>${currentYear}</option>
                                         <option value="${currentYear+1}">${currentYear+1}</option>
@@ -1218,60 +1253,53 @@
                             </div>
                         </div>
 
-                        <!-- Data Table -->
                         <div class="overflow-x-auto border border-gray-100 rounded-xl">
-                            <table class="w-full text-left border-collapse min-w-[800px]">
+                            <table class="w-full text-left border-collapse min-w-[700px]">
                                 <thead>
-                                    <tr class="bg-gray-50 text-gray-600 font-bold text-xs uppercase tracking-wider border-b border-gray-200">
+                                    <tr class="bg-gray-50 text-gray-600 font-bold text-xs border-b border-gray-200 uppercase tracking-wider">
                                         <th class="p-4 pl-6">Tanggal</th>
                                         <th class="p-4">Nama Bahan</th>
                                         <th class="p-4">Kategori</th>
                                         <th class="p-4 text-center">Qty Masuk</th>
                                         <th class="p-4 text-center">Satuan</th>
-                                        <th class="p-4 text-right">Total Harga</th>
                                         <th class="p-4 pr-6 text-center">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody id="table-body-stock" class="text-sm divide-y divide-gray-100">
-                                    <tr><td colspan="7" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr>
+                                <tbody id="riwayat-stock-body" class="text-sm divide-y divide-gray-100">
+                                    <tr><td colspan="5" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             `;
-            ambilDataStock();
+            fetchDataRiwayatStock();
         }
 
-        async function ambilDataStock() {
+        async function fetchDataRiwayatStock() {
             if(!db) return;
             const monthVal = document.getElementById('filter-stock-month').value;
             const yearVal = document.getElementById('filter-stock-year').value;
-            const searchVal = document.getElementById('filter-stock-search').value.toLowerCase();
-            const tbody = document.getElementById('table-body-stock');
+            const tbody = document.getElementById('riwayat-stock-body');
             
-            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-400"><i class="ph ph-spinner animate-spin text-2xl mb-2 block mx-auto"></i> Memuat data...</td></tr>`;
 
             const startDate = `${yearVal}-${String(monthVal).padStart(2, '0')}-01`;
             const lastDay = new Date(yearVal, monthVal, 0).getDate();
             const endDate = `${yearVal}-${String(monthVal).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
             try {
-                let query = db.from('stock_history')
+                const { data, error } = await db.from('stock_history')
                     .select('*')
                     .gte('tanggal', startDate)
                     .lte('tanggal', endDate)
                     .order('tanggal', { ascending: false })
                     .order('id', { ascending: false });
-                
-                if (searchVal) { query = query.ilike('nama_bahan', `%${searchVal}%`); }
-
-                const { data, error } = await query;
 
                 if (error) throw error;
 
                 if (!data || data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-gray-400 font-medium">Tidak ada data stok masuk.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-400 font-medium">Tidak ada riwayat stok masuk pada bulan ini.</td></tr>`;
                     return;
                 }
 
@@ -1285,7 +1313,6 @@
                         <td class="p-4"><span class="bg-gray-100 text-gray-600 font-bold text-xs px-2.5 py-1 rounded-md border border-gray-200">${item.kategori}</span></td>
                         <td class="p-4 text-center font-black text-pdark">+ ${item.qty}</td>
                         <td class="p-4 text-center font-bold text-gray-400 uppercase text-xs">${item.satuan}</td>
-                        <td class="p-4 text-right font-black text-red-600">Rp ${Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
                         <td class="p-4 pr-6 text-center flex justify-center gap-2">
                             <button onclick="editRiwayatStock(${item.id})" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-100 transition-colors mx-auto shadow-sm active:scale-95" title="Edit Data"><i class="ph ph-pencil-simple text-lg"></i></button>
                             <button onclick="hapusRiwayatStock(${item.id})" class="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors mx-auto shadow-sm active:scale-95" title="Hapus Data"><i class="ph ph-trash text-lg"></i></button>
@@ -1296,54 +1323,7 @@
 
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-red-500 font-bold">Terjadi kesalahan saat memuat data stok.</td></tr>`;
-            }
-        }
-
-        function bukaModalStock() {
-            document.getElementById('form-stock').reset();
-            document.getElementById('s-tanggal').value = new Date().toISOString().split('T')[0];
-            document.getElementById('modal-title-stock').innerHTML = '<i class="ph ph-package"></i> Input Stok Baru'; 
-            document.getElementById('btn-simpan-stock').innerHTML = 'SIMPAN STOK';
-            document.getElementById('modal-stock').classList.remove('hidden');
-        }
-
-        function tutupModalStock() { document.getElementById('modal-stock').classList.add('hidden'); }
-
-        async function simpanStockBaru(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btn-simpan-stock');
-            btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Menyimpan...';
-            btn.disabled = true;
-            
-            try {
-                const tgl = document.getElementById('s-tanggal').value;
-                const nama = document.getElementById('s-nama').value;
-                const kat = document.getElementById('s-kategori').value;
-                const qty = parseFloat(document.getElementById('s-qty').value)||0;
-                const sat = document.getElementById('s-satuan').value;
-                const harga = parseFloat(document.getElementById('s-harga').value)||0;
-                
-                // 1. Catat ke History (Buku Log)
-                await db.from('stock_history').insert([{ 
-                    tanggal: tgl, nama_bahan: nama, kategori: kat, qty: qty, satuan: sat, total_harga: harga, keterangan: 'Stock Masuk Baru' 
-                }]);
-
-                // 2. Update/Insert ke Master Stock Pintar
-                const { data: existingStock } = await db.from('stocks').select('id, qty').eq('nama_bahan', nama).single();
-                if (existingStock) {
-                    await db.from('stocks').update({ qty: Number(existingStock.qty) + qty }).eq('id', existingStock.id);
-                } else {
-                    await db.from('stocks').insert([{ nama_bahan: nama, kategori: kat, qty: qty, satuan: sat }]);
-                }
-
-                tutupModalStock(); 
-                ambilDataStock(); // Refresh Table
-            } catch(err) {
-                alert("Gagal menyimpan stok: " + err.message);
-            } finally {
-                btn.innerHTML = 'SIMPAN STOK';
-                btn.disabled = false;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 font-bold">Terjadi kesalahan. Pastikan tabel 'stock_history' sudah dibuat.</td></tr>`;
             }
         }
 
@@ -1359,7 +1339,6 @@
                 document.getElementById('rs-kategori').value = data.kategori;
                 document.getElementById('rs-qty').value = data.qty;
                 document.getElementById('rs-satuan').value = data.satuan;
-                document.getElementById('rs-harga').value = data.total_harga || 0;
                 document.getElementById('modal-riwayat-stock').classList.remove('hidden');
             }
         }
@@ -1372,58 +1351,23 @@
             e.preventDefault();
             if(!db) return;
             
-            try {
-                // Tarik data riwayat lama untuk menghitung selisih koreksi
-                const { data: oldData } = await db.from('stock_history').select('nama_bahan, qty').eq('id', editRiwayatStockId).single();
-                
-                const newQty = parseFloat(document.getElementById('rs-qty').value) || 0;
-                const newNama = document.getElementById('rs-nama').value;
-                
-                await db.from('stock_history').update({
-                    tanggal: document.getElementById('rs-tanggal').value,
-                    nama_bahan: newNama,
-                    kategori: document.getElementById('rs-kategori').value,
-                    qty: newQty,
-                    satuan: document.getElementById('rs-satuan').value,
-                    total_harga: parseFloat(document.getElementById('rs-harga').value) || 0
-                }).eq('id', editRiwayatStockId);
-                
-                // Smart Update: Otomatis membetulkan jumlah Master Stock
-                if(oldData && oldData.nama_bahan === newNama) {
-                    const diff = newQty - (Number(oldData.qty) || 0);
-                    if(diff !== 0) {
-                        const { data: master } = await db.from('stocks').select('id, qty').eq('nama_bahan', newNama).single();
-                        if(master) await db.from('stocks').update({ qty: Number(master.qty) + diff }).eq('id', master.id);
-                    }
-                }
-                
-                tutupModalRiwayatStock();
-                ambilDataStock();
-            } catch(err) {
-                alert("Gagal mengubah data: " + err.message);
-            }
+            await db.from('stock_history').update({
+                tanggal: document.getElementById('rs-tanggal').value,
+                nama_bahan: document.getElementById('rs-nama').value,
+                kategori: document.getElementById('rs-kategori').value,
+                qty: parseFloat(document.getElementById('rs-qty').value) || 0,
+                satuan: document.getElementById('rs-satuan').value
+            }).eq('id', editRiwayatStockId);
+            
+            tutupModalRiwayatStock();
+            fetchDataRiwayatStock();
         }
 
         async function hapusRiwayatStock(id) {
             if(!db) return;
-            if(confirm("Hapus catatan stok masuk ini?\n(Sistem pintar: Jumlah pada Master Stock akan otomatis dikurangi)")) {
-                try {
-                    const { data: oldData } = await db.from('stock_history').select('nama_bahan, qty').eq('id', id).single();
-                    await db.from('stock_history').delete().eq('id', id);
-                    
-                    // Smart Update: Otomatis memotong qty dari Master Stock
-                    if(oldData) {
-                        const { data: master } = await db.from('stocks').select('id, qty').eq('nama_bahan', oldData.nama_bahan).single();
-                        if(master) {
-                            let updatedQty = Number(master.qty) - Number(oldData.qty);
-                            if(updatedQty < 0) updatedQty = 0; // Cegah stok minus jika terjadi kesalahan input
-                            await db.from('stocks').update({ qty: updatedQty }).eq('id', master.id);
-                        }
-                    }
-                    ambilDataStock();
-                } catch(err) {
-                    alert("Gagal menghapus data: " + err.message);
-                }
+            if(confirm("Apakah Anda yakin ingin menghapus catatan riwayat stok ini?\n(Catatan: Ini tidak akan mengurangi jumlah stok di menu Master Stok secara otomatis.)")) {
+                await db.from('stock_history').delete().eq('id', id);
+                fetchDataRiwayatStock();
             }
         }
 
